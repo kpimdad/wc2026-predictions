@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1628">
+  <meta name="description" content="World Cup 2026 Family & Friends Prediction Game">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WC2026">
+
+  <title>⚽ Kootharas WC 2026</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDK (compat v9 modular via CDN) -->
+  <script type="module">
+    import { initializeApp }         from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, collection, doc, getDoc, getDocs,
+             setDoc, updateDoc, query, where, orderBy,
+             serverTimestamp, writeBatch }
+             from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    // Expose to global scope so app.js (loaded as classic script) can access
+    window.firebaseApp        = { initializeApp };
+    window.firebaseFirestore  = {
+      getFirestore, collection, doc, getDoc, getDocs,
+      setDoc, updateDoc, query, where, orderBy,
+      serverTimestamp, writeBatch
+    };
+
+    // Signal ready
+    window.firebaseReady = true;
+    document.dispatchEvent(new Event('firebase-ready'));
+  </script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     TOP BAR (minimal — just brand + user)
+     ════════════════════════════════════════ -->
+<header id="app-nav" class="topbar" style="display:none">
+  <span class="topbar-brand bebas">🏆 Kootharas WC 2026</span>
+  <div style="display:flex;align-items:center;gap:0.5rem">
+    <div id="topbar-avatar-wrap" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer" id="my-picks-topbar-btn">
+      <div id="topbar-avatar"></div>
+      <span id="nav-user-name" class="topbar-user"></span>
+    </div>
+    <button class="icon-btn" id="logout-btn" title="Sign out">↩</button>
+  </div>
+</header>
+
+<!-- PWA install banner -->
+<div id="install-banner" style="display:none">
+  <span>📲 Add to your home screen for the best experience</span>
+  <button id="install-btn" class="install-yes">Install</button>
+  <button id="install-dismiss" class="install-no">✕</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     BOTTOM NAV (hidden on login)
+     ════════════════════════════════════════ -->
+<nav id="bottom-nav" class="bottom-nav" style="display:none">
+  <button class="bnav-btn active" data-view="view-home">
+    <span class="bnav-icon">⚽</span>
+    <span class="bnav-label">Matches</span>
+  </button>
+  <button class="bnav-btn" data-view="view-leaderboard">
+    <span class="bnav-icon">🏅</span>
+    <span class="bnav-label">Table</span>
+  </button>
+  <button class="bnav-btn" data-view="view-my-preds">
+    <span class="bnav-icon">📋</span>
+    <span class="bnav-label">Mine</span>
+  </button>
+  <button class="bnav-btn" id="my-picks-btn">
+    <span class="bnav-icon">🏆</span>
+    <span class="bnav-label">Picks</span>
+  </button>
+  <button class="bnav-btn admin-btn" data-view="view-admin" id="admin-nav-btn" style="display:none">
+    <span class="bnav-icon">⚙️</span>
+    <span class="bnav-label">Admin</span>
+  </button>
+</nav>
+
+<!-- ════════════════════════════════════════
+     VIEW 1 — LOGIN
+     ════════════════════════════════════════ -->
+<div id="view-login" class="view">
+  <div class="login-hero">
+    <div class="login-trophy">🏆</div>
+    <h1 class="login-title bebas">Kootharas WC 2026</h1>
+    <p class="login-subtitle">Prediction Game</p>
+  </div>
+
+  <div class="login-card">
+
+    <!-- ── LOGIN FORM ── -->
+    <div id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="login-user-select">Who are you?</label>
+        <select id="login-user-select" class="form-select">
+          <option value="">Loading…</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="login-pin">4-Digit PIN</label>
+        <div class="pin-wrapper">
+          <input
+            id="login-pin"
+            class="form-input"
+            type="password"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            placeholder="••••"
+            autocomplete="current-password"
+          >
+          <button id="pin-toggle" class="pin-toggle" type="button" aria-label="Show/hide PIN">👁</button>
+        </div>
+      </div>
+
+      <button id="login-btn" class="btn btn-primary">Enter 🏟️</button>
+      <div id="login-error" class="login-error">Wrong PIN — try again.</div>
+      <p style="text-align:center;margin-top:1rem;font-size:0.85rem;color:var(--muted)">
+        New here? <button id="show-register-btn" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.85rem;text-decoration:underline">Create account</button>
+      </p>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div id="register-form" style="display:none">
+
+      <!-- Photo picker — entire circle is tappable -->
+      <div class="form-group" style="text-align:center">
+        <label for="reg-photo-input" class="avatar-picker" id="avatar-picker-wrap">
+          <div class="avatar-preview" id="avatar-preview">
+            <span class="avatar-cam-icon">📷</span>
+            <span class="avatar-cam-label">Add photo</span>
+          </div>
+        </label>
+        <input id="reg-photo-input" type="file" accept="image/*" style="display:none">
+        <canvas id="reg-photo-canvas" style="display:none"></canvas>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-nickname">Your Nickname</label>
+        <input id="reg-nickname" class="form-input" type="text" placeholder="e.g. Imdad" maxlength="30">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-pin">Choose a 4-Digit PIN</label>
+        <div class="pin-wrapper">
+          <input id="reg-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reg-pin-confirm">Confirm PIN</label>
+        <div class="pin-wrapper">
+          <input id="reg-pin-confirm" class="form-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
+        </div>
+      </div>
+
+      <button id="register-btn" class="btn btn-primary">Join the Game 🏆</button>
+      <div id="register-error" class="login-error"></div>
+      <p style="text-align:center;margin-top:1rem;font-size:0.85rem;color:var(--muted)">
+        Already have an account? <button id="show-login-btn" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.85rem;text-decoration:underline">Sign in</button>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     VIEW 2 — HOME / MATCH FEED
+     ════════════════════════════════════════ -->
+<div id="view-home" class="view">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="upcoming">Upcoming</button>
+    <button class="tab-btn" data-tab="today">Today</button>
+    <button class="tab-btn" data-tab="completed">Completed</button>
+  </div>
+
+  <div id="match-list" class="match-list">
+    <!-- Skeleton loading -->
+    <div class="skeleton-card">
+      <div class="skeleton sk-line w30" style="margin-bottom:12px"></div>
+      <div class="skeleton sk-line w100 tall" style="margin-bottom:10px"></div>
+      <div class="skeleton sk-line w70"></div>
+    </div>
+    <div class="skeleton-card">
+      <div class="skeleton sk-line w30" style="margin-bottom:12px"></div>
+      <div class="skeleton sk-line w100 tall" style="margin-bottom:10px"></div>
+      <div class="skeleton sk-line w50"></div>
+    </div>
+    <div class="skeleton-card">
+      <div class="skeleton sk-line w50" style="margin-bottom:12px"></div>
+      <div class="skeleton sk-line w100 tall" style="margin-bottom:10px"></div>
+      <div class="skeleton sk-line w30"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     VIEW 3 — PREDICT / EDIT
+     ════════════════════════════════════════ -->
+<div id="view-predict" class="view">
+  <div class="predict-header">
+    <div class="predict-meta" id="predict-meta">Group Stage · Venue</div>
+    <div class="predict-teams">
+      <span class="flag" id="predict-flag-a">🏳️</span>
+      <span id="predict-team-a">Team A</span>
+      <span style="color:var(--muted);font-size:1.2rem">vs</span>
+      <span id="predict-team-b">Team B</span>
+      <span class="flag" id="predict-flag-b">🏳️</span>
+    </div>
+    <div class="predict-kickoff" id="predict-kickoff"></div>
+  </div>
+
+  <div class="predict-body">
+
+    <div id="predict-locked-msg" class="predict-locked" style="display:none">
+      🔒 Predictions are closed for this match
+    </div>
+
+    <!-- Score display row — tap a score to edit it -->
+    <div class="score-display-row">
+      <button class="score-display-btn active" id="score-display-a" data-team="a">
+        <span class="score-display-flag" id="picker-flag-a">🏳️</span>
+        <span class="score-display-name" id="picker-name-a">Team A</span>
+        <span class="score-display-num" id="score-a" data-val="0">0</span>
+      </button>
+      <span class="score-display-vs">–</span>
+      <button class="score-display-btn" id="score-display-b" data-team="b">
+        <span class="score-display-flag" id="picker-flag-b">🏳️</span>
+        <span class="score-display-name" id="picker-name-b">Team B</span>
+        <span class="score-display-num" id="score-b" data-val="0">0</span>
+      </button>
+    </div>
+
+    <p class="numpad-hint" id="numpad-hint">Tap a team score to edit it</p>
+
+    <!-- Number pad -->
+    <div class="numpad" id="numpad">
+      <button class="numpad-key" data-digit="1">1</button>
+      <button class="numpad-key" data-digit="2">2</button>
+      <button class="numpad-key" data-digit="3">3</button>
+      <button class="numpad-key" data-digit="4">4</button>
+      <button class="numpad-key" data-digit="5">5</button>
+      <button class="numpad-key" data-digit="6">6</button>
+      <button class="numpad-key" data-digit="7">7</button>
+      <button class="numpad-key" data-digit="8">8</button>
+      <button class="numpad-key" data-digit="9">9</button>
+      <button class="numpad-key numpad-clear" data-digit="clear">⌫</button>
+      <button class="numpad-key" data-digit="0">0</button>
+      <button class="numpad-key numpad-done" data-digit="done">✓</button>
+    </div>
+
+    <div class="predict-actions">
+      <button id="predict-save-btn" class="btn btn-primary">Save Prediction 💾</button>
+      <button id="predict-back-btn" class="btn btn-secondary">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     VIEW 4 — LEADERBOARD
+     ════════════════════════════════════════ -->
+<div id="view-leaderboard" class="view">
+  <div class="view-header">
+    <div>
+      <h2 class="view-title">Leaderboard</h2>
+    </div>
+    <select id="leaderboard-filter" class="filter-select">
+      <option value="overall">Overall</option>
+    </select>
+  </div>
+
+  <div id="leaderboard-body" class="lb-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+  <div id="leaderboard-updated" class="updated-note"></div>
+</div>
+
+<!-- ════════════════════════════════════════
+     VIEW 5 — MY PREDICTIONS
+     ════════════════════════════════════════ -->
+<div id="view-my-preds" class="view">
+  <div class="view-header">
+    <h2 class="view-title">My Predictions</h2>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-box">
+      <div class="stat-num text-gold" id="stat-pts">0</div>
+      <div class="stat-label">Points</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-exact" style="color:#4cd085">0</div>
+      <div class="stat-label">Exact</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-winner" style="color:#5dade2">0</div>
+      <div class="stat-label">Result</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-acc" style="color:var(--silver)">0%</div>
+      <div class="stat-label">Accuracy</div>
+    </div>
+  </div>
+
+  <div id="my-preds-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     VIEW 6 — ADMIN PANEL
+     ════════════════════════════════════════ -->
+<div id="view-admin" class="view">
+  <div class="view-header">
+    <h2 class="view-title">⚙️ Admin</h2>
+  </div>
+
+  <!-- Admin sub-tabs -->
+  <div class="admin-tabs">
+    <button class="tab-btn active" data-tab="users">Users</button>
+    <button class="tab-btn" data-tab="matches">Matches</button>
+    <button class="tab-btn" data-tab="recalc">Recalculate</button>
+  </div>
+
+  <!-- Tab: Manage Users -->
+  <div class="admin-section" data-tab="users">
+    <div class="admin-card">
+      <div class="admin-card-head">Add New User</div>
+      <div class="admin-card-body">
+        <div class="admin-form">
+          <div class="admin-form-row">
+            <div class="form-group">
+              <label class="form-label" for="new-nickname">Nickname</label>
+              <input id="new-nickname" class="form-input" type="text" placeholder="e.g. Imdad">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-pin">PIN (4 digits)</label>
+              <input id="new-pin" class="form-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-mobile">Mobile (optional, display only)</label>
+            <input id="new-mobile" class="form-input" type="tel" placeholder="+44 7700 000000">
+          </div>
+          <button id="admin-add-user-btn" class="btn btn-primary" style="width:auto">Add User</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-head">Current Users</div>
+      <div class="admin-card-body" id="admin-user-list">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Manage Matches -->
+  <div class="admin-section" data-tab="matches" style="display:none">
+    <div id="admin-match-list">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Recalculate Points -->
+  <div class="admin-section" data-tab="recalc" style="display:none">
+    <div class="admin-card">
+      <div class="admin-card-head">Recalculate Match Points</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1rem">
+          Re-score all predictions for a single match (e.g. after correcting a result).
+        </p>
+        <div class="recalc-section">
+          <select id="recalc-match-select" class="recalc-select">
+            <option value="">— Select a completed match —</option>
+          </select>
+          <button id="recalc-match-btn" class="btn btn-primary" style="width:auto">Recalculate This Match</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-head">Rebuild All Totals</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1rem">
+          Recalculate every user's total points from all awarded predictions. Use if totals are out of sync.
+        </p>
+        <button id="recalc-all-btn" class="btn btn-secondary" style="width:auto;border-color:var(--gold);color:var(--gold)">
+          Rebuild All User Totals
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     CHAMPION / GOLDEN BOOT MODAL
+     ════════════════════════════════════════ -->
+<div id="champion-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
+      <h2 class="bebas" style="color:var(--gold);font-size:2rem;line-height:1">🏆 Your Picks</h2>
+      <button id="close-champion-btn" style="background:none;border:none;color:var(--muted);font-size:1.6rem;cursor:pointer;line-height:1;padding:0.25rem;border-radius:50%;transition:color 0.15s" aria-label="Close">×</button>
+    </div>
+    <p style="color:var(--silver);font-size:0.875rem;margin-bottom:1.5rem">
+      Pick your champion (+50 pts) and the team the Golden Boot winner plays for (+25 pts) — awarded at the end of the tournament!
+    </p>
+
+    <div class="pick-section">
+      <label class="form-label">🏆 Tournament Winner</label>
+      <select id="champion-select" class="form-select"></select>
+    </div>
+
+    <div class="pick-section" style="margin-top:1rem">
+      <label class="form-label">⚽ Golden Boot — Top Scorer's Team</label>
+      <select id="golden-boot-select" class="form-select"></select>
+    </div>
+
+    <!-- Photo update -->
+    <div class="pick-section" style="margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1.25rem">
+      <label class="form-label">📸 Profile Photo (optional)</label>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div id="modal-avatar-preview" style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.5rem">👤</div>
+        <label class="avatar-pick-btn" for="modal-photo-input" style="cursor:pointer;color:var(--gold);font-size:0.85rem;text-decoration:underline">
+          Upload / change photo
+        </label>
+        <input id="modal-photo-input" type="file" accept="image/*" style="display:none">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap">
+      <button id="save-champion-btn" class="btn btn-primary" style="flex:1">Save My Picks</button>
+      <button id="skip-champion-btn" class="btn btn-secondary" style="flex:1">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TOAST CONTAINER
+     ════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════ -->
+<!-- Match data must load before app.js -->
+<script src="matches.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- App logic waits for Firebase module to load -->
+<script>
+  function loadApp() {
+    const s = document.createElement('script');
+    s.src = 'app.js';
+    document.body.appendChild(s);
+  }
+  if (window.firebaseReady) {
+    loadApp();
+  } else {
+    document.addEventListener('firebase-ready', loadApp, { once: true });
+  }
+</script>
+
+</body>
+</html>
