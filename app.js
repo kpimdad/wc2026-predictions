@@ -1696,8 +1696,8 @@ window.addEventListener('appinstalled', () => {
 async function boot() {
   const app = initializeApp(FIREBASE_CONFIG);
   STATE.db  = getFirestore(app);
-  window.saveMatchResult = saveMatchResult;
-  window.setMatchStatus  = setMatchStatus;
+  window.saveMatchResult  = saveMatchResult;
+  window.fetchAllResults  = fetchAllResults;
 
   document.getElementById('install-btn').addEventListener('click', async () => {
     if (!_deferredInstallPrompt) return;
