@@ -1236,9 +1236,10 @@ async function fetchAllResults() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
 
   try {
-    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
-      headers: { 'X-Auth-Token': (typeof FOOTBALL_API_KEY !== 'undefined' ? FOOTBALL_API_KEY : '') }
-    });
+    const key = typeof FOOTBALL_API_KEY !== 'undefined' ? FOOTBALL_API_KEY : '';
+    const res = await fetch(
+      `https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED&token=${key}`
+    );
     if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
     const data = await res.json();
 
