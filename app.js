@@ -960,8 +960,8 @@ function renderLeaderboardTable(users, filter) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-num">🎯</th>
-          <th class="lb-th-num">✓</th>
+          <th class="lb-th-num"><span class="lb-th-icon">🎯</span><span class="lb-th-label">Exact</span></th>
+          <th class="lb-th-num"><span class="lb-th-icon">✓</span><span class="lb-th-label">Result</span></th>
           <th class="lb-th-pts">Pts</th>
         </tr>
       </thead>

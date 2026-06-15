@@ -799,11 +799,18 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   table-layout: fixed;
 }
 
-/* Column widths — 5 columns: # | Player | 🎯 | ✓ | Pts */
+/* Column widths — 5 columns: # | Player | 🎯 Exact | ✓ Result | Pts */
 .lb-th-rank   { width: 68px;  text-align: center; padding-left: 0.75rem !important; }
 .lb-th-player { text-align: left; }  /* takes remaining space */
-.lb-th-num    { width: 80px;  text-align: center; }
-.lb-th-pts    { width: 82px;  text-align: right; padding-right: 1rem !important; }
+.lb-th-num    { width: 76px;  text-align: center; }
+.lb-th-pts    { width: 72px;  text-align: right; padding-right: 1rem !important; }
+
+/* Two-line header cells for the stat columns */
+.lb-th-num { vertical-align: middle; }
+.lb-th-num .lb-th-icon  { display: block; font-size: 1rem; line-height: 1.2; }
+.lb-th-num .lb-th-label { display: block; font-size: 0.65rem; font-weight: 700;
+                           text-transform: uppercase; letter-spacing: 0.06em;
+                           color: var(--muted); line-height: 1.2; }
 
 .lb-table th {
   background: var(--card2);
@@ -1577,9 +1584,11 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 
   /* ── Leaderboard: 5 columns fit comfortably, no horizontal scroll ── */
   .lb-table { width: 100%; min-width: unset; }
-  .lb-th-rank { width: 44px; }
-  .lb-th-num  { width: 44px; }
-  .lb-th-pts  { width: 56px; }
+  .lb-th-rank { width: 40px; }
+  .lb-th-num  { width: 58px; }
+  .lb-th-pts  { width: 50px; }
+  .lb-th-num .lb-th-icon  { font-size: 0.85rem; }
+  .lb-th-num .lb-th-label { font-size: 0.58rem; }
   .lb-td-rank   { padding: 0.45rem 0.1rem 0.45rem 0.3rem; }
   .lb-td-player { padding: 0.45rem 0.35rem; }
   .lb-player-wrap { gap: 0.3rem; }
