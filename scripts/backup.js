@@ -1,7 +1,6 @@
 'use strict';
 /**
- * backup.js
- * Daily backup of all Firestore data → Excel (.xlsx) → emailed as attachment
+ * backup.js — Daily backup → Excel email
  * Sheets: Leaderboard | Predictions | Match Results | Users
  */
 
@@ -14,6 +13,11 @@ const os         = require('os');
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
+
+// matches-index.json lives in the same scripts/ directory
+const MATCHES_INDEX = require('./matches-index.json');
+const matchIndex = {};
+MATCHES_INDEX.forEach(m => { matchIndex[m.matchId] = m; });
 
 const RECIPIENT = process.env.BACKUP_EMAIL || 'imdadkp@gmail.com';
 const SENDER    = process.env.GMAIL_USER   || 'imdadkp@gmail.com';
@@ -29,6 +33,12 @@ function headerStyle(row) {
   });
 }
 
+function stripe(row, i) {
+  if (i % 2 === 0) row.eachCell(c => {
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } };
+  });
+}
+
 function autoWidth(sheet) {
   sheet.columns.forEach(col => {
     let max = col.header ? col.header.length : 10;
@@ -36,171 +46,183 @@ function autoWidth(sheet) {
       const len = cell.value ? String(cell.value).length : 0;
       if (len > max) max = len;
     });
-    col.width = Math.min(max + 3, 40);
+    col.width = Math.min(max + 3, 42);
   });
+}
+
+function fmtDate(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
 }
 
 // ── Build workbook ─────────────────────────────────────────────────────────
 
 async function buildWorkbook() {
   const wb = new ExcelJS.Workbook();
-  wb.creator  = 'WC2026 Backup';
-  wb.created  = new Date();
+  wb.creator = 'WC2026 Backup';
+  wb.created = new Date();
 
-  // ── Fetch all data ──────────────────────────────────────────────────────
+  // ── Fetch all Firestore data ────────────────────────────────────────────
   const [usersSnap, predsSnap, matchesSnap] = await Promise.all([
     db.collection('users').get(),
     db.collection('predictions').get(),
     db.collection('matches').get(),
   ]);
 
-  const users   = {};
-  const matches = {};
+  // Build user map — keyed by doc ID
+  const allUsers = {};
+  usersSnap.forEach(d => { allUsers[d.id] = { id: d.id, ...d.data() }; });
 
-  usersSnap.forEach(d => { users[d.id]   = { id: d.id, ...d.data() }; });
-  matchesSnap.forEach(d => { matches[d.id] = { id: d.id, ...d.data() }; });
+  // Active players only (exclude disabled and admin/system accounts)
+  const activePlayers = Object.values(allUsers).filter(
+    u => !u.disabled && !u.isAdminAccount && u.nickname !== 'Admin_account'
+  );
 
-  // ── Sheet 1: Leaderboard ────────────────────────────────────────────────
+  // Firestore match results — keyed by matchId
+  const firestoreResults = {};
+  matchesSnap.forEach(d => { firestoreResults[d.id] = d.data(); });
+
+  // Compute exact/correct counts from predictions (user doc fields may be stale)
+  const exactCount   = {};
+  const correctCount = {};
+  predsSnap.forEach(d => {
+    const p = d.data();
+    if (p.pointsAwarded === 13) exactCount[p.userId]   = (exactCount[p.userId]   || 0) + 1;
+    if (p.pointsAwarded === 10) correctCount[p.userId] = (correctCount[p.userId] || 0) + 1;
+  });
+
+  // ── SHEET 1: Leaderboard ────────────────────────────────────────────────
   const lbSheet = wb.addWorksheet('Leaderboard');
   lbSheet.columns = [
-    { header: 'Rank',           key: 'rank',    width: 8  },
-    { header: 'Player',         key: 'name',    width: 18 },
-    { header: 'Points',         key: 'pts',     width: 10 },
-    { header: 'Exact Scores',   key: 'exact',   width: 14 },
-    { header: 'Correct Results',key: 'result',  width: 16 },
-    { header: 'Champion Pick',  key: 'champ',   width: 18 },
-    { header: 'Top Scorer Pick',key: 'boot',    width: 18 },
+    { header: 'Rank',            key: 'rank',    width: 8  },
+    { header: 'Player',          key: 'name',    width: 16 },
+    { header: 'Points',          key: 'pts',     width: 10 },
+    { header: 'Exact Scores',    key: 'exact',   width: 14 },
+    { header: 'Correct Results', key: 'correct', width: 16 },
+    { header: 'Champion Pick',   key: 'champ',   width: 20 },
+    { header: 'Top Scorer Pick', key: 'boot',    width: 20 },
   ];
   headerStyle(lbSheet.getRow(1));
 
-  const activeUsers = Object.values(users)
-    .filter(u => !u.disabled && !u.isAdminAccount)
-    .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
-
-  activeUsers.forEach((u, i) => {
+  const sorted = [...activePlayers].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+  sorted.forEach((u, i) => {
     const row = lbSheet.addRow({
-      rank:   i + 1,
-      name:   u.nickname || '–',
-      pts:    u.totalPoints    || 0,
-      exact:  u.exactScores    || 0,
-      result: u.correctResults || 0,
-      champ:  u.championPick   || '–',
-      boot:   u.goldenBootPick || '–',
+      rank:    i + 1,
+      name:    u.nickname || '–',
+      pts:     u.totalPoints || 0,
+      exact:   exactCount[u.id]   || 0,
+      correct: correctCount[u.id] || 0,
+      champ:   u.championPick   || '–',
+      boot:    u.goldenBootPick || '–',
     });
-    if (i % 2 === 0) {
-      row.eachCell(c => {
-        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } };
-      });
-    }
+    stripe(row, i);
     row.getCell('pts').font   = { bold: true, color: { argb: 'FFB8860B' } };
-    row.getCell('exact').font = { color: { argb: 'FFCC8800' } };
+    row.getCell('exact').font = { bold: true, color: { argb: 'FFCC8800' } };
+    row.getCell('correct').font = { color: { argb: 'FF2E7D32' } };
   });
   autoWidth(lbSheet);
 
-  // ── Sheet 2: Predictions ────────────────────────────────────────────────
+  // ── SHEET 2: Predictions ────────────────────────────────────────────────
   const predSheet = wb.addWorksheet('Predictions');
   predSheet.columns = [
-    { header: 'Player',          key: 'player',   width: 14 },
-    { header: 'Match',           key: 'match',    width: 28 },
-    { header: 'Kickoff (UTC)',   key: 'kickoff',  width: 20 },
-    { header: 'Predicted',       key: 'predicted',width: 12 },
-    { header: 'Actual',          key: 'actual',   width: 12 },
-    { header: 'Points',          key: 'pts',      width: 10 },
-    { header: 'Last Minute',     key: 'lastmin',  width: 13 },
+    { header: 'Player',        key: 'player',    width: 14 },
+    { header: 'Match',         key: 'match',     width: 30 },
+    { header: 'Kickoff (UTC)', key: 'kickoff',   width: 20 },
+    { header: 'Predicted',     key: 'predicted', width: 12 },
+    { header: 'Actual',        key: 'actual',    width: 12 },
+    { header: 'Points',        key: 'pts',       width: 10 },
   ];
   headerStyle(predSheet.getRow(1));
 
   const predRows = [];
   predsSnap.forEach(d => {
     const p = d.data();
-    const u = users[p.userId];
-    const m = matches[p.matchId];
-    if (!u || !m) return;
+    const u = allUsers[p.userId];
+    if (!u || u.disabled || u.isAdminAccount) return;
+
+    const mi = matchIndex[p.matchId];
+    const fr = firestoreResults[p.matchId];
+
     predRows.push({
-      player:    u.nickname || p.userId,
-      match:     `${m.teamA || '?'} vs ${m.teamB || '?'}`,
-      kickoff:   m.kickoffUTC ? new Date(m.kickoffUTC).toISOString().replace('T', ' ').slice(0, 16) : '–',
+      player:    u.nickname || '–',
+      match:     mi ? `${mi.teamA} vs ${mi.teamB}` : '–',
+      kickoff:   mi ? fmtDate(mi.kickoffUTC) : '–',
       predicted: `${p.predictedA} – ${p.predictedB}`,
-      actual:    m.resultA != null ? `${m.resultA} – ${m.resultB}` : '–',
+      actual:    (fr?.resultA != null) ? `${fr.resultA} – ${fr.resultB}` : '–',
       pts:       p.pointsAwarded ?? '–',
-      lastmin:   p.lastMinute ? 'Yes' : 'No',
+      _kickoff:  mi?.kickoffUTC || '',
+      _player:   u.nickname || '',
     });
   });
 
-  // Sort by kickoff then player
-  predRows.sort((a, b) => a.kickoff.localeCompare(b.kickoff) || a.player.localeCompare(b.player));
+  predRows.sort((a, b) => a._kickoff.localeCompare(b._kickoff) || a._player.localeCompare(b._player));
   predRows.forEach((r, i) => {
-    const row = predSheet.addRow(r);
-    if (i % 2 === 0) row.eachCell(c => {
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } };
+    const row = predSheet.addRow({
+      player: r.player, match: r.match, kickoff: r.kickoff,
+      predicted: r.predicted, actual: r.actual, pts: r.pts,
     });
+    stripe(row, i);
     if (r.pts === 13) row.getCell('pts').font = { bold: true, color: { argb: 'FFCC8800' } };
     if (r.pts === 10) row.getCell('pts').font = { color: { argb: 'FF2E7D32' } };
     if (r.pts === 0)  row.getCell('pts').font = { color: { argb: 'FFC62828' } };
   });
   autoWidth(predSheet);
 
-  // ── Sheet 3: Match Results ──────────────────────────────────────────────
+  // ── SHEET 3: Match Results ──────────────────────────────────────────────
   const matchSheet = wb.addWorksheet('Match Results');
   matchSheet.columns = [
-    { header: 'Match Day',   key: 'day',     width: 14 },
-    { header: 'Kickoff UTC', key: 'kickoff', width: 20 },
-    { header: 'Team A',      key: 'teamA',   width: 22 },
-    { header: 'Score',       key: 'score',   width: 10 },
-    { header: 'Team B',      key: 'teamB',   width: 22 },
-    { header: 'Status',      key: 'status',  width: 12 },
+    { header: 'Match Day',     key: 'day',     width: 14 },
+    { header: 'Kickoff (UTC)', key: 'kickoff', width: 22 },
+    { header: 'Team A',        key: 'teamA',   width: 22 },
+    { header: 'Score',         key: 'score',   width: 12 },
+    { header: 'Team B',        key: 'teamB',   width: 22 },
+    { header: 'Status',        key: 'status',  width: 12 },
   ];
   headerStyle(matchSheet.getRow(1));
 
-  const matchRows = Object.values(matches)
-    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
-
+  // Use matches-index.json as the source of truth for teams/kickoffs
+  // Join with Firestore for results/status
+  const matchRows = [...MATCHES_INDEX].sort(
+    (a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC)
+  );
   matchRows.forEach((m, i) => {
+    const fr = firestoreResults[m.matchId] || {};
+    const hasResult = fr.resultA != null;
     const row = matchSheet.addRow({
-      day:     m.matchDay || '–',
-      kickoff: m.kickoffUTC ? new Date(m.kickoffUTC).toISOString().replace('T', ' ').slice(0, 16) : '–',
-      teamA:   m.teamA || '–',
-      score:   m.resultA != null ? `${m.resultA} – ${m.resultB}` : 'TBD',
-      teamB:   m.teamB || '–',
-      status:  m.status || '–',
+      day:     m.matchDay   || '–',
+      kickoff: fmtDate(m.kickoffUTC),
+      teamA:   m.teamA      || '–',
+      score:   hasResult ? `${fr.resultA} – ${fr.resultB}` : 'TBD',
+      teamB:   m.teamB      || '–',
+      status:  fr.status    || 'upcoming',
     });
-    if (i % 2 === 0) row.eachCell(c => {
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } };
-    });
-    if (m.status === 'completed') row.getCell('score').font = { bold: true };
+    stripe(row, i);
+    if (hasResult) row.getCell('score').font = { bold: true };
   });
   autoWidth(matchSheet);
 
-  // ── Sheet 4: Users ──────────────────────────────────────────────────────
+  // ── SHEET 4: Users (active only) ────────────────────────────────────────
   const userSheet = wb.addWorksheet('Users');
   userSheet.columns = [
-    { header: 'Nickname',        key: 'name',    width: 16 },
+    { header: 'Player',          key: 'name',    width: 16 },
     { header: 'Points',          key: 'pts',     width: 10 },
     { header: 'Exact Scores',    key: 'exact',   width: 14 },
-    { header: 'Correct Results', key: 'result',  width: 16 },
-    { header: 'Champion Pick',   key: 'champ',   width: 18 },
-    { header: 'Top Scorer Pick', key: 'boot',    width: 18 },
-    { header: 'Mobile',          key: 'mobile',  width: 14 },
-    { header: 'Admin',           key: 'admin',   width: 8  },
-    { header: 'Status',          key: 'status',  width: 10 },
+    { header: 'Correct Results', key: 'correct', width: 16 },
+    { header: 'Champion Pick',   key: 'champ',   width: 20 },
+    { header: 'Top Scorer Pick', key: 'boot',    width: 20 },
   ];
   headerStyle(userSheet.getRow(1));
 
-  Object.values(users).forEach((u, i) => {
+  activePlayers.forEach((u, i) => {
     const row = userSheet.addRow({
-      name:   u.nickname       || '–',
-      pts:    u.totalPoints    || 0,
-      exact:  u.exactScores    || 0,
-      result: u.correctResults || 0,
-      champ:  u.championPick   || '–',
-      boot:   u.goldenBootPick || '–',
-      mobile: u.mobile         || '–',
-      admin:  u.isAdmin ? 'Yes' : 'No',
-      status: u.disabled ? 'Disabled' : 'Active',
+      name:    u.nickname       || '–',
+      pts:     u.totalPoints    || 0,
+      exact:   exactCount[u.id]   || 0,
+      correct: correctCount[u.id] || 0,
+      champ:   u.championPick   || '–',
+      boot:    u.goldenBootPick || '–',
     });
-    if (i % 2 === 0) row.eachCell(c => {
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4FA' } };
-    });
+    stripe(row, i);
   });
   autoWidth(userSheet);
 
@@ -218,29 +240,28 @@ async function sendBackup(wb) {
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: {
-      user: SENDER,
-      pass: process.env.GMAIL_BACKUP_PASSWORD,
-    },
+    auth: { user: SENDER, pass: process.env.GMAIL_BACKUP_PASSWORD },
   });
 
   await transporter.sendMail({
-    from:     `"WC2026 Backup" <${SENDER}>`,
-    to:       RECIPIENT,
-    subject:  `⚽ WC2026 Daily Backup — ${today}`,
+    from:    `"WC2026 Backup" <${SENDER}>`,
+    to:      RECIPIENT,
+    subject: `⚽ WC2026 Daily Backup — ${today}`,
     html: `
       <h2 style="color:#0A3D6B">World Cup 2026 — Daily Backup</h2>
       <p>Your daily data backup is attached.</p>
-      <p>The Excel file contains 4 sheets:<br>
-        <strong>Leaderboard</strong> · <strong>Predictions</strong> ·
-        <strong>Match Results</strong> · <strong>Users</strong>
-      </p>
+      <ul>
+        <li><strong>Leaderboard</strong> — ranked standings with exact scores &amp; correct results</li>
+        <li><strong>Predictions</strong> — all active player predictions with match names, kickoffs &amp; points</li>
+        <li><strong>Match Results</strong> — all 104 matches with scores &amp; status</li>
+        <li><strong>Users</strong> — active players summary</li>
+      </ul>
       <p style="color:#888;font-size:12px">Generated: ${new Date().toUTCString()}</p>
     `,
     attachments: [{ filename, path: tmpPath }],
   });
 
-  console.log(`✅ Backup emailed to ${RECIPIENT} — ${filename}`);
+  console.log(`✅ Backup emailed to ${RECIPIENT} (${filename})`);
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
@@ -252,4 +273,4 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(e => { console.error('Fatal:', e.message); process.exit(1); });
+main().catch(e => { console.error('Fatal:', e.message, e.stack); process.exit(1); });
