@@ -124,7 +124,7 @@ async function main() {
       if (delta === 0) continue;
       const uRef  = db.collection('users').doc(uid);
       const uSnap = await uRef.get();
-      if (uSnap.exists()) {
+      if (uSnap.exists) {
         userBatch.update(uRef, { totalPoints: (uSnap.data().totalPoints || 0) + delta });
       }
     }
