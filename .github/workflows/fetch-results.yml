@@ -2,8 +2,12 @@ name: Fetch WC Results
 
 on:
   schedule:
-    # Runs every hour — adjust as needed
-    - cron: '0 * * * *'
+    # Slot 1 — afternoon kickoffs (16:00–19:00 UTC) → run at 21:30 UTC
+    - cron: '30 21 * * *'
+    # Slot 2 — evening kickoffs (20:00–23:30 UTC) → run at 02:30 UTC
+    - cron: '30 2 * * *'
+    # Slot 3 — late-night kickoffs (00:00–04:00 UTC) → run at 06:30 UTC
+    - cron: '30 6 * * *'
   workflow_dispatch: # Also allows manual trigger from the Actions tab
 
 jobs:
