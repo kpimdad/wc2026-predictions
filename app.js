@@ -42,9 +42,12 @@ function loadPrevRanks() {
   try { return JSON.parse(localStorage.getItem('wc2026_prevRanks')) || {}; } catch { return {}; }
 }
 function saveRankSnapshot(rankedUsers) {
+  // Only save once per page load — prevents overwriting before arrows are shown
+  if (sessionStorage.getItem('wc2026_rankSaved')) return;
   const snap = {};
   rankedUsers.forEach((u, i) => { snap[u.id] = i + 1; });
   localStorage.setItem('wc2026_prevRanks', JSON.stringify(snap));
+  sessionStorage.setItem('wc2026_rankSaved', '1');
 }
 
 // ── Session ────────────────────────────────────────────
@@ -176,9 +179,9 @@ function getAvatarHTML(user, size = 36) {
 
 // ── Scoring ────────────────────────────────────────────
 function calculatePoints(pA, pB, rA, rB) {
-  if (pA === rA && pB === rB) return 3;            // exact scoreline
-  if (Math.sign(pA - pB) === Math.sign(rA - rB)) return 10; // correct result/winner
-  return 0;
+  if (Math.sign(pA - pB) !== Math.sign(rA - rB)) return 0;   // wrong result
+  if (pA === rA && pB === rB) return 13;                       // exact score + correct result (10+3)
+  return 10;                                                    // correct result/winner only
 }
 
 // ── Firestore ──────────────────────────────────────────
@@ -219,13 +222,31 @@ async function fetchUsers() {
 async function initLoginView() {
   const snap = await getDocs(collection(STATE.db, 'users'));
   const sel  = document.getElementById('login-user-select');
+  // Build a map of userId → pinHash for quick lookup on selection
+  const userPinMap = {};
   sel.innerHTML = '<option value="">— Who are you? —</option>';
   snap.forEach(d => {
     if (d.data().disabled) return;
-    if (d.data().isAdminAccount) return;  // admin account hidden from player list
+    if (d.data().isAdminAccount) return;
     const o = document.createElement('option');
     o.value = d.id; o.textContent = d.data().nickname;
     sel.appendChild(o);
+    userPinMap[d.id] = d.data().pinHash || '';
+  });
+
+  // When user picks a name, toggle first-time vs returning UI
+  sel.addEventListener('change', () => {
+    const uid = sel.value;
+    const confirmGroup = document.getElementById('login-pin-confirm-group');
+    const pinLabel     = document.getElementById('login-pin-label');
+    const firstMsg     = document.getElementById('login-firsttime-msg');
+    const isNew = uid && !userPinMap[uid];
+    pinLabel.textContent = isNew ? 'Choose a 4-Digit PIN' : '4-Digit PIN';
+    confirmGroup.style.display = isNew ? 'block' : 'none';
+    firstMsg.style.display     = isNew ? 'block'  : 'none';
+    document.getElementById('login-error').classList.remove('show');
+    document.getElementById('login-pin').value = '';
+    if (uid) document.getElementById('login-pin').focus();
   });
 }
 
@@ -235,22 +256,34 @@ async function handleLogin() {
   const errEl  = document.getElementById('login-error');
   const btn    = document.getElementById('login-btn');
   errEl.classList.remove('show');
-  if (!userId || !pin) { errEl.textContent = 'Select your name and enter your PIN.'; errEl.classList.add('show'); return; }
+  if (!userId) { errEl.textContent = 'Select your name first.'; errEl.classList.add('show'); return; }
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
   btn.disabled = true; btn.textContent = 'Checking…';
   try {
     const snap = await getDoc(doc(STATE.db, 'users', userId));
     if (!snap.exists()) throw new Error('not found');
     const user = snap.data();
-    if (await hashPin(pin) !== user.pinHash) throw new Error('wrong pin');
+    if (!user.pinHash) {
+      // First login — save the PIN they chose
+      const confirm = document.getElementById('login-pin-confirm').value.trim();
+      if (pin !== confirm) {
+        errEl.textContent = 'PINs do not match — try again.'; errEl.classList.add('show');
+        btn.disabled = false; btn.textContent = 'Enter 🏟️'; return;
+      }
+      await updateDoc(doc(STATE.db, 'users', userId), { pinHash: await hashPin(pin) });
+    } else {
+      if (await hashPin(pin) !== user.pinHash) throw new Error('wrong pin');
+    }
     saveSession(userId, user.nickname, user.isAdmin || false);
     document.getElementById('login-pin').value = '';
+    document.getElementById('login-pin-confirm').value = '';
     await initApp();
   } catch {
     errEl.textContent = 'Wrong PIN — try again.'; errEl.classList.add('show');
     document.getElementById('login-pin').value = '';
     document.getElementById('login-pin').focus();
   }
-  btn.disabled = false; btn.textContent = 'Enter';
+  btn.disabled = false; btn.textContent = 'Enter 🏟️';
 }
 
 // ── Admin password login (hidden modal) ───────────────
@@ -285,22 +318,28 @@ async function handleAdminLogin() {
 }
 
 async function handleRegister() {
-  const nickname = document.getElementById('reg-nickname').value.trim();
+  const raw      = document.getElementById('reg-nickname').value.trim();
   const pin      = document.getElementById('reg-pin').value.trim();
   const confirm  = document.getElementById('reg-pin-confirm').value.trim();
   const photoFile = document.getElementById('reg-photo-input').files[0];
   const errEl    = document.getElementById('register-error');
   const btn      = document.getElementById('register-btn');
   errEl.classList.remove('show');
-  if (!nickname) { errEl.textContent = 'Enter a nickname.'; errEl.classList.add('show'); return; }
+  if (!raw) { errEl.textContent = 'Enter a nickname.'; errEl.classList.add('show'); return; }
+  // Sentence case
+  const nickname   = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  const normalised = nickname.toLowerCase().replace(/\s+/g, '');
   if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; errEl.classList.add('show'); return; }
   if (pin !== confirm) { errEl.textContent = 'PINs do not match.'; errEl.classList.add('show'); return; }
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
     const existing = await getDocs(collection(STATE.db, 'users'));
-    const taken = []; existing.forEach(d => taken.push(d.data().nickname.toLowerCase()));
-    if (taken.includes(nickname.toLowerCase())) {
-      errEl.textContent = 'Nickname taken — try another.'; errEl.classList.add('show');
+    let duplicate = false;
+    existing.forEach(d => {
+      if ((d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
+    });
+    if (duplicate) {
+      errEl.textContent = `"${nickname}" is already taken — try another.`; errEl.classList.add('show');
       btn.disabled = false; btn.textContent = 'Join the Game 🏆'; return;
     }
     let photoURL = '';
@@ -488,7 +527,7 @@ function renderMatchCard(m) {
   if (completed) {
     const pts = pred?.pointsAwarded;
     const ptsBadge =
-      pts === 3  ? `<span class="fm-pts exact">+3 pts ⚽</span>`  :
+      pts === 13 ? `<span class="fm-pts exact">+13 pts ⚽</span>` :
       pts === 10 ? `<span class="fm-pts winner">+10 pts ✓</span>` :
       pts === 0  ? `<span class="fm-pts wrong">0 pts</span>`      :
       !pred      ? `<span class="fm-pts none">No pick</span>`     : '';
@@ -710,18 +749,23 @@ function renderDeadlineBanner() {
 
 async function computeUserAccuracy() {
   const snap = await getDocs(collection(STATE.db, 'predictions'));
-  const finished = {}, scored = {};
+  const finished = {}, scored = {}, exactMap = {}, winnerMap = {};
   snap.forEach(d => {
     const p = d.data();
     if (p.pointsAwarded != null) {
       finished[p.userId] = (finished[p.userId] || 0) + 1;
-      if (p.pointsAwarded > 0) scored[p.userId] = (scored[p.userId] || 0) + 1;
+      if (p.pointsAwarded === 13) { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
+      if (p.pointsAwarded === 10) { winnerMap[p.userId] = (winnerMap[p.userId] || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
     }
   });
   STATE.users.forEach(u => {
     const total = finished[u.id] || 0;
-    u.finishedPreds = total;
-    u.accuracy = total >= 3 ? Math.round(((scored[u.id] || 0) / total) * 100) : null;
+    u.finishedPreds    = total;
+    u.computedExact    = exactMap[u.id]  || 0;
+    u.computedWinner   = winnerMap[u.id] || 0;
+    u.exactAccuracy    = total >= 1 ? Math.round(((exactMap[u.id]  || 0) / total) * 100) : null;
+    u.resultAccuracy   = total >= 1 ? Math.round(((winnerMap[u.id] || 0) / total) * 100) : null;
+    u.accuracy         = total >= 1 ? Math.round(((scored[u.id]    || 0) / total) * 100) : null;
   });
 }
 
@@ -759,8 +803,8 @@ async function openCompareModal(userId, nickname) {
     return;
   }
 
-  const ptsCls   = p => p === 3 ? 'exact' : p === 10 ? 'winner' : p === 0 ? 'wrong' : 'none';
-  const ptsLabel = p => p === 3 ? '+3 ⚽' : p === 10 ? '+10 ✓' : p === 0 ? '0 pts' : '–';
+  const ptsCls   = p => p === 13 ? 'exact' : p === 10 ? 'winner' : p === 0 ? 'wrong' : 'none';
+  const ptsLabel = p => p === 13 ? '+13 ⚽' : p === 10 ? '+10 ✓' : p === 0 ? '0 pts' : '–';
 
   body.innerHTML = completed.map(m => {
     const mine   = STATE.predictions[m.matchId];
@@ -830,7 +874,7 @@ async function buildFilteredLeaderboard(matchIds, filter) {
     const p = d.data();
     if (!matchIds.has(p.matchId)) return;
     pts[p.userId]    = (pts[p.userId]    || 0) + (p.pointsAwarded || 0);
-    if (p.pointsAwarded === 3)  exact[p.userId]  = (exact[p.userId]  || 0) + 1;
+    if (p.pointsAwarded === 13) exact[p.userId]  = (exact[p.userId]  || 0) + 1;
     if (p.pointsAwarded === 10) winner[p.userId] = (winner[p.userId] || 0) + 1;
   });
   const sorted = STATE.users.map(u => ({
@@ -851,54 +895,70 @@ function renderLeaderboardTable(users, filter) {
     return;
   }
 
-  container.innerHTML = users.map((u, i) => {
+  const rows = users.map((u, i) => {
     const pts    = filter ? (u.filteredPoints || 0) : (u.totalPoints || 0);
-    const exact  = filter ? (u.filteredExact  || 0) : (u.exactScores || 0);
-    const winner = filter ? (u.filteredWinner || 0) : (u.correctResults || 0);
+    const exact  = filter ? (u.filteredExact  || 0) : (u.computedExact  || 0);
+    const winner = filter ? (u.filteredWinner || 0) : (u.computedWinner || 0);
     const isMe   = u.id === myId;
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    const rankDisplay = i < 3 ? `<span class="lb-medal">${rankIcon[i]}</span>` : `<span class="lb-num">${i + 1}</span>`;
-    const fireBadge   = u.lastMinuteCount > 0 ? ' 🔥' : '';
-    const champLine   = u.championPick ? `<span class="lb-champ-pick">🏆 ${u.championPick}</span>` : '';
+    const rankNum = i < 3 ? rankIcon[i] : (i + 1);
+    const fire    = '';
 
-    // Rank movement arrow
+    // Rank movement
     let moveHTML = '';
     if (prevRanks[u.id] != null) {
-      const diff = prevRanks[u.id] - (i + 1); // positive = moved up
-      if (diff > 0)      moveHTML = `<span class="lb-rank-move up">↑${diff}</span>`;
-      else if (diff < 0) moveHTML = `<span class="lb-rank-move down">↓${Math.abs(diff)}</span>`;
-      else               moveHTML = `<span class="lb-rank-move same">–</span>`;
+      const diff = prevRanks[u.id] - (i + 1);
+      if (diff > 0)      moveHTML = `<div class="lb-rank-move up">↑${diff}</div>`;
+      else if (diff < 0) moveHTML = `<div class="lb-rank-move down">↓${Math.abs(diff)}</div>`;
+      else               moveHTML = `<div class="lb-rank-move same">–</div>`;
     }
 
-    // Accuracy badge (overall view only)
-    const accHTML = (!filter && u.accuracy != null) ? `<span class="lb-accuracy lb-stats">· ${u.accuracy}%</span>` : '';
+    const champ = u.championPick  || '–';
+    const boot  = u.goldenBootPick || '–';
 
-    return `<div class="lb-row ${isMe ? 'lb-me' : ''} ${rankCls}" data-uid="${u.id}" data-nickname="${u.nickname}">
-      <div class="lb-rank">${rankDisplay}${moveHTML}</div>
-      <div class="lb-avatar">${getAvatarHTML(u, 44)}</div>
-      <div class="lb-info">
-        <div class="lb-name">${u.nickname}${isMe ? ' <span class="me-tag">You</span>' : ''}${fireBadge}</div>
-        <div class="lb-sub">${champLine}<span class="lb-stats">${exact} exact · ${winner} results</span>${accHTML}</div>
-      </div>
-      <div class="lb-pts-col">
-        <span class="lb-pts">${pts}</span>
-        <span class="lb-pts-label">pts</span>
-      </div>
-    </div>`;
+    return `<tr class="lb-tr ${isMe ? 'lb-me' : ''} ${rankCls}" data-uid="${u.id}" data-nickname="${u.nickname}">
+      <td class="lb-td-rank"><div class="lb-rank-num">${rankNum}</div>${moveHTML}</td>
+      <td class="lb-td-player">
+        <div class="lb-player-wrap">
+          ${getAvatarHTML(u, 54)}
+          <span class="lb-name-text">${u.nickname}${isMe ? ' <span class="me-tag">You</span>' : ''}${fire}</span>
+        </div>
+      </td>
+      <td class="lb-td-pick" title="${champ}">${champ}</td>
+      <td class="lb-td-pick lb-td-boot" title="${boot}">${boot}</td>
+      <td class="lb-td-num">${exact}</td>
+      <td class="lb-td-num">${winner}</td>
+      <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
+    </tr>`;
   }).join('');
+
+  container.innerHTML = `
+    <table class="lb-table">
+      <thead>
+        <tr>
+          <th class="lb-th-rank">#</th>
+          <th class="lb-th-player">Player</th>
+          <th class="lb-th-pick">🏆 Champion</th>
+          <th class="lb-th-pick">⚽ Golden Boot</th>
+          <th class="lb-th-num">🎯 Exact</th>
+          <th class="lb-th-num">✓ Result</th>
+          <th class="lb-th-pts">Pts</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 
   document.getElementById('leaderboard-updated').textContent =
     `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`;
 
-  // Save rank snapshot for next visit (overall ranking only)
+  // Save rank snapshot for next visit (overall only)
   if (!filter) saveRankSnapshot(users);
 
-  // Row tap → compare predictions (not yourself)
-  document.querySelectorAll('.lb-row').forEach(row => {
+  // Row tap → compare (not yourself)
+  document.querySelectorAll('.lb-tr').forEach(row => {
     row.addEventListener('click', () => {
-      const uid = row.dataset.uid;
-      if (uid === myId) return;
-      openCompareModal(uid, row.dataset.nickname);
+      if (row.dataset.uid === myId) return;
+      openCompareModal(row.dataset.uid, row.dataset.nickname);
     });
   });
 }
@@ -934,7 +994,7 @@ function renderMyPredictions() {
     if (!p) return;
     if (!groups[m.matchDay]) groups[m.matchDay] = [];
     groups[m.matchDay].push({ m, p });
-    if (p.pointsAwarded === 3)  { totalPts += 3;  exact++; }
+    if (p.pointsAwarded === 13) { totalPts += 13; exact++; }
     else if (p.pointsAwarded === 10) { totalPts += 10; winner++; }
   });
 
@@ -956,10 +1016,10 @@ function renderMyPredictions() {
       <div class="matchday-label">${day}</div>
       ${items.map(({ m, p }) => {
         const pts = p.pointsAwarded;
-        const ptsCls = pts === 3  ? 'exact' : pts === 10 ? 'winner' : pts === 0 ? 'wrong' : 'none';
-        const ptsLabel = pts === 3  ? '+3'  : pts === 10 ? '+10' : pts === 0 ? '0' : '–';
+        const ptsCls = pts === 13 ? 'exact' : pts === 10 ? 'winner' : pts === 0 ? 'wrong' : 'none';
+        const ptsLabel = pts === 13 ? '+13' : pts === 10 ? '+10' : pts === 0 ? '0' : '–';
         const result = m.resultA != null ? `${m.resultA} – ${m.resultB}` : null;
-        const fire = p.lastMinute ? ' 🔥' : '';
+
         return `<div class="pred-fm-card">
           <div class="pred-fm-row">
             <div class="pred-fm-team">
@@ -968,7 +1028,7 @@ function renderMyPredictions() {
             </div>
             <div class="pred-fm-center">
               <div class="pred-fm-my-score">${p.predictedA} – ${p.predictedB}</div>
-              <div class="pred-fm-score-label">MY PICK${fire}</div>
+              <div class="pred-fm-score-label">MY PICK</div>
               ${result
                 ? `<div class="pred-fm-result">${result}</div><div class="pred-fm-score-label">RESULT</div>`
                 : `<div class="pred-fm-result pending">?–?</div><div class="pred-fm-score-label">PENDING</div>`}
@@ -1012,7 +1072,7 @@ async function renderAdminUsers() {
       <div class="user-info" style="display:flex;align-items:center;gap:.75rem">
         ${getAvatarHTML(u, 32)}
         <div>
-          <div class="user-nickname">${u.nickname}${u.isAdmin ? ' 👑' : ''}${u.lastMinuteCount > 0 ? ' 🔥' : ''}</div>
+          <div class="user-nickname">${u.nickname}${u.isAdmin ? ' 👑' : ''}</div>
           <div class="user-meta">${u.mobile || ''}${u.mobile ? ' · ' : ''}${u.totalPoints || 0} pts${u.championPick ? ` · 🏆 ${u.championPick}` : ''}</div>
         </div>
       </div>
@@ -1028,19 +1088,27 @@ async function renderAdminUsers() {
 }
 
 async function addAdminUser() {
-  const nickname = document.getElementById('new-nickname').value.trim();
-  const pin      = document.getElementById('new-pin').value.trim();
-  const mobile   = document.getElementById('new-mobile').value.trim();
-  if (!nickname || !/^\d{4}$/.test(pin)) { showToast('Nickname and 4-digit PIN required', 'error'); return; }
+  const raw = document.getElementById('new-nickname').value.trim();
+  if (!raw) { showToast('Nickname required', 'error'); return; }
+  // Sentence case: capitalise first letter, lowercase the rest
+  const nickname   = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  const normalised = nickname.toLowerCase().replace(/\s+/g, '');
   try {
+    // Duplicate check — case-insensitive, ignores spaces
+    const existing = await getDocs(collection(STATE.db, 'users'));
+    let duplicate = false;
+    existing.forEach(d => {
+      if ((d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
+    });
+    if (duplicate) { showToast(`"${nickname}" already exists`, 'error'); return; }
     await setDoc(doc(collection(STATE.db, 'users')), {
-      nickname, pinHash: await hashPin(pin), mobile: mobile || '',
+      nickname, pinHash: '', mobile: '',
       isAdmin: false, totalPoints: 0, exactScores: 0, correctResults: 0,
       championPick: '', goldenBootPick: '', lastMinuteCount: 0,
       photoURL: '', createdAt: serverTimestamp()
     });
-    showToast(`${nickname} added!`, 'success');
-    ['new-nickname','new-pin','new-mobile'].forEach(id => document.getElementById(id).value = '');
+    showToast(`${nickname} added! They'll set their PIN on first login.`, 'success');
+    document.getElementById('new-nickname').value = '';
     renderAdminUsers();
   } catch (e) { showToast('Error adding user', 'error'); console.error(e); }
 }
@@ -1086,7 +1154,7 @@ async function saveMatchResult(matchId) {
       const p = d.data();
       const pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
       batch.update(d.ref, { pointsAwarded: pts });
-      total++; if (pts === 3) exact++; if (pts === 10) correct++;
+      total++; if (pts === 13) exact++; if (pts === 10) correct++;
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
@@ -1162,18 +1230,21 @@ async function saveBackdatePrediction() {
   const pts = m.resultA != null ? calculatePoints(pA, pB, m.resultA, m.resultB) : null;
 
   try {
+    // Read OLD points BEFORE writing — must happen first to compute delta correctly
+    const existingSnap = await getDoc(doc(STATE.db, 'predictions', predId));
+    const oldPts = existingSnap.exists() ? (existingSnap.data().pointsAwarded ?? 0) : 0;
+
     const pred = {
       userId, matchId, predictedA: pA, predictedB: pB,
-      updatedAt: serverTimestamp(), submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...(existingSnap.exists() ? {} : { submittedAt: serverTimestamp() }),
       lastMinute: false, backdated: true,
       ...(pts !== null ? { pointsAwarded: pts } : {}),
     };
     await setDoc(doc(STATE.db, 'predictions', predId), pred, { merge: true });
 
-    // Update user total if points were awarded
+    // Update user total using pre-write delta
     if (pts !== null) {
-      const existing = await getDoc(doc(STATE.db, 'predictions', predId));
-      const oldPts = existing.exists() ? (existing.data().pointsAwarded ?? 0) : 0;
       const delta = pts - oldPts;
       if (delta !== 0) {
         const uSnap = await getDoc(doc(STATE.db, 'users', userId));
@@ -1211,6 +1282,45 @@ async function recalcAll() {
     await batch.commit();
     showToast('All totals rebuilt!', 'success');
   } catch (e) { showToast('Error rebuilding totals', 'error'); console.error(e); }
+}
+
+// Re-score every prediction for every completed match, then rebuild totals.
+// Use this when the scoring formula has changed (e.g. switching to 3/10/0).
+async function rescoreAllMatches() {
+  if (!confirm('Re-score ALL predictions for ALL completed matches with current scoring (3 / 10 / 0)? This overwrites stored points.')) return;
+  showToast('Re-scoring all matches…', 'info');
+  try {
+    const completedMatches = STATE.matches.filter(m => m.status === 'completed' && m.resultA != null);
+    let predCount = 0;
+
+    for (const m of completedMatches) {
+      const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', m.matchId)));
+      if (pSnap.empty) continue;
+      const batch = writeBatch(STATE.db);
+      pSnap.forEach(d => {
+        const p = d.data();
+        const pts = calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
+        batch.update(d.ref, { pointsAwarded: pts });
+        predCount++;
+      });
+      await batch.commit();
+    }
+
+    // Now rebuild all user totals from the freshly-scored pointsAwarded values
+    const uSnap = await getDocs(collection(STATE.db, 'users'));
+    const totals = {};
+    uSnap.forEach(d => { totals[d.id] = 0; });
+    const allPreds = await getDocs(collection(STATE.db, 'predictions'));
+    allPreds.forEach(d => {
+      const p = d.data();
+      if (p.pointsAwarded != null) totals[p.userId] = (totals[p.userId] || 0) + p.pointsAwarded;
+    });
+    const uBatch = writeBatch(STATE.db);
+    Object.entries(totals).forEach(([uid, pts]) => uBatch.update(doc(STATE.db, 'users', uid), { totalPoints: pts }));
+    await uBatch.commit();
+
+    showToast(`✅ Re-scored ${predCount} predictions across ${completedMatches.length} matches`, 'success');
+  } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1360,6 +1470,7 @@ function wireEvents() {
   document.getElementById('admin-add-user-btn').addEventListener('click', addAdminUser);
   document.getElementById('recalc-match-btn').addEventListener('click', recalcMatch);
   document.getElementById('recalc-all-btn').addEventListener('click', recalcAll);
+  document.getElementById('rescore-all-btn').addEventListener('click', rescoreAllMatches);
 
   // Champion modal
   const closeModal = () => { document.getElementById('champion-modal').style.display = 'none'; };

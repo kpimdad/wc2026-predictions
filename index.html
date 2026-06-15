@@ -115,8 +115,12 @@
         </select>
       </div>
 
+      <div id="login-firsttime-msg" style="display:none;background:rgba(240,180,41,0.1);border:1px solid rgba(240,180,41,0.3);border-radius:8px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--gold);margin-bottom:0.5rem">
+        👋 First time here! Choose a 4-digit PIN — you'll use it every time you log in.
+      </div>
+
       <div class="form-group">
-        <label class="form-label" for="login-pin">4-Digit PIN</label>
+        <label class="form-label" id="login-pin-label" for="login-pin">4-Digit PIN</label>
         <div class="pin-wrapper">
           <input
             id="login-pin"
@@ -129,6 +133,13 @@
             autocomplete="current-password"
           >
           <button id="pin-toggle" class="pin-toggle" type="button" aria-label="Show/hide PIN">👁</button>
+        </div>
+      </div>
+
+      <div class="form-group" id="login-pin-confirm-group" style="display:none">
+        <label class="form-label" for="login-pin-confirm">Confirm PIN</label>
+        <div class="pin-wrapper">
+          <input id="login-pin-confirm" class="form-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
         </div>
       </div>
 
@@ -348,19 +359,10 @@
       <div class="admin-card-head">Add New User</div>
       <div class="admin-card-body">
         <div class="admin-form">
-          <div class="admin-form-row">
-            <div class="form-group">
-              <label class="form-label" for="new-nickname">Nickname</label>
-              <input id="new-nickname" class="form-input" type="text" placeholder="e.g. Imdad">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="new-pin">PIN (4 digits)</label>
-              <input id="new-pin" class="form-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234">
-            </div>
-          </div>
           <div class="form-group">
-            <label class="form-label" for="new-mobile">Mobile (optional, display only)</label>
-            <input id="new-mobile" class="form-input" type="tel" placeholder="+44 7700 000000">
+            <label class="form-label" for="new-nickname">Nickname</label>
+            <input id="new-nickname" class="form-input" type="text" placeholder="e.g. Imdad" maxlength="30">
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">Auto sentence case · User sets their own PIN on first login</div>
           </div>
           <button id="admin-add-user-btn" class="btn btn-primary" style="width:auto">Add User</button>
         </div>
@@ -440,6 +442,18 @@
         </p>
         <button id="recalc-all-btn" class="btn btn-secondary" style="width:auto;border-color:var(--gold);color:var(--gold)">
           Rebuild All User Totals
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-card" style="border-color:#e74c3c">
+      <div class="admin-card-head" style="color:#e74c3c">⚠️ Re-score All Predictions</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1rem">
+          Re-applies the current scoring rules (exact score = 13 pts, correct result only = 10 pts, wrong = 0) to every prediction for every completed match, then rebuilds all totals.
+        </p>
+        <button id="rescore-all-btn" class="btn btn-secondary" style="width:auto;border-color:#e74c3c;color:#e74c3c">
+          Re-score All Matches (13 / 10 / 0)
         </button>
       </div>
     </div>

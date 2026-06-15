@@ -776,13 +776,12 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
 }
 
 /* ════════════════════════════════════════
-   LEADERBOARD — CARD STYLE
+   LEADERBOARD — TABLE STYLE
    ════════════════════════════════════════ */
 .lb-list {
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .lb-empty {
   text-align: center;
@@ -790,124 +789,148 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
   color: var(--muted);
   font-size: 0.9rem;
 }
-.lb-row {
+/* ── Table ───────────────────────────────────── */
+.lb-table {
+  width: 100%;
+  min-width: 676px;
+  border-collapse: collapse;
+  font-size: 1rem;
+  table-layout: fixed;
+}
+
+/* Column widths — all explicit so nothing stretches */
+.lb-th-rank   { width: 62px;  text-align: center; padding-left: 0.75rem !important; }
+.lb-th-player { width: 170px; text-align: left; }
+.lb-th-pick   { width: 112px; text-align: left; }
+.lb-th-num    { width: 72px;  text-align: center; }
+.lb-th-pts    { width: 76px;  text-align: right; padding-right: 1rem !important; }
+
+.lb-table th {
+  background: var(--card2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* ── Table rows ──────────────────────────────── */
+.lb-tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.lb-tr:active { background: rgba(255,255,255,0.05); }
+.lb-tr.lb-me  { background: rgba(240,180,41,0.07); }
+.lb-tr.gold   { border-left: 4px solid #FFD700; }
+.lb-tr.silver { border-left: 4px solid #C0C0C0; }
+.lb-tr.bronze { border-left: 4px solid #CD7F32; }
+
+/* ── Rank cell ───────────────────────────────── */
+.lb-td-rank {
+  text-align: center;
+  padding: 1.1rem 0.25rem 1.1rem 0.75rem;
+  vertical-align: middle;
+}
+.lb-rank-num { font-size: 1.7rem; line-height: 1; }
+
+/* ── Player cell ─────────────────────────────── */
+.lb-td-player {
+  padding: 1.1rem 0.75rem;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.lb-player-wrap {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.875rem 1rem;
-  transition: background var(--transition);
 }
-.lb-row.lb-me {
-  background: rgba(240,180,41,0.07);
-  border-color: rgba(240,180,41,0.25);
-}
-.lb-row.gold   { border-left: 3px solid #FFD700; }
-.lb-row.silver { border-left: 3px solid #C0C0C0; }
-.lb-row.bronze { border-left: 3px solid #CD7F32; }
-
-.lb-rank {
-  width: 2rem;
-  text-align: center;
-  flex-shrink: 0;
-}
-.lb-medal { font-size: 1.3rem; line-height: 1; }
-.lb-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.2rem;
-  color: var(--muted);
-}
-
-.lb-avatar { flex-shrink: 0; }
-
-.lb-info {
-  flex: 1;
-  min-width: 0;
-}
-.lb-name {
-  font-size: 0.95rem;
-  font-weight: 600;
+.lb-name-text {
+  font-size: 1.15rem;
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lb-sub {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.15rem;
-  flex-wrap: wrap;
-}
-.lb-champ-pick {
-  font-size: 0.68rem;
+
+/* ── Champion / Golden Boot pick cells ──────── */
+.lb-td-pick {
+  padding: 1.1rem 0.5rem;
+  vertical-align: middle;
+  font-size: 1rem;
   color: var(--gold);
-  background: rgba(240,180,41,0.1);
-  border-radius: 4px;
-  padding: 0.1rem 0.35rem;
-  font-weight: 600;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.lb-stats {
-  font-size: 0.68rem;
-  color: var(--muted);
+.lb-td-boot {
+  color: var(--text);
+  opacity: 0.85;
 }
 
-.lb-pts-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
+/* ── Number cells (Exact / Result) ──────────── */
+.lb-td-num {
+  text-align: center;
+  padding: 1.1rem 0.5rem;
+  vertical-align: middle;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* ── Points cell ─────────────────────────────── */
+.lb-td-pts {
+  text-align: right;
+  padding: 1.1rem 1rem 1.1rem 0.25rem;
+  vertical-align: middle;
 }
 .lb-pts {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.8rem;
+  font-size: 2.6rem;
   color: var(--gold);
   line-height: 1;
 }
-.lb-pts-label {
-  font-size: 0.6rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+
+/* ── Rank movement badges ────────────────────── */
+.lb-rank-move {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.18em 0.35em;
+  border-radius: 4px;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
 }
+.lb-rank-move.up   { background: rgba(46,204,113,0.18); color: #2ecc71; }
+.lb-rank-move.down { background: rgba(231,76,60,0.18);  color: #e74c3c; }
+.lb-rank-move.same { color: var(--muted); }
+
+/* ── Accuracy badge ──────────────────────────── */
+.lb-accuracy { display: block; color: #3498db; font-size: 0.72rem; font-weight: 600; margin-top: 0.2rem; line-height: 1; }
+
+/* ── You tag ─────────────────────────────────── */
 .me-tag {
   display: inline-block;
   background: rgba(240,180,41,0.15);
-  border: 1px solid rgba(240,180,41,0.35);
-  border-radius: 3px;
+  border: 1px solid rgba(240,180,41,0.4);
+  border-radius: 4px;
   color: var(--gold);
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 0.05rem 0.3rem;
+  padding: 0.08rem 0.35rem;
   text-transform: uppercase;
   vertical-align: middle;
   margin-left: 0.3rem;
 }
-
-/* ── Leaderboard row tap ─────────────────────── */
-.lb-row { cursor: pointer; }
-.lb-row:active { opacity: 0.8; }
-
-/* ── Rank movement badges ────────────────────── */
-.lb-rank-move {
-  display: block;
-  font-size: 0.6rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0.15em 0.3em;
-  border-radius: 3px;
-  margin-top: 3px;
-  letter-spacing: 0.02em;
-}
-.lb-rank-move.up   { background: rgba(46,204,113,0.15); color: #2ecc71; }
-.lb-rank-move.down { background: rgba(231,76,60,0.15);  color: #e74c3c; }
-.lb-rank-move.same { color: var(--muted); }
-
-/* ── Accuracy badge ──────────────────────────── */
-.lb-accuracy { color: #3498db; }
 
 /* ── Deadline banner ─────────────────────────── */
 .deadline-banner {
@@ -1023,28 +1046,28 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
    ════════════════════════════════════════ */
 .pred-fm-card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
 }
 .pred-fm-row {
   display: grid;
-  grid-template-columns: 1fr 90px 1fr;
+  grid-template-columns: 1fr 110px 1fr;
   align-items: center;
-  padding: 0.875rem 0.875rem 0.75rem;
-  gap: 0.25rem;
+  padding: 1rem 1.25rem 1.1rem;
+  gap: 0.5rem;
 }
 .pred-fm-team {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.4rem;
 }
 .pred-fm-team.right { align-items: flex-end; }
-.pred-fm-flag { font-size: 1.75rem; line-height: 1; }
+.pred-fm-flag { font-size: 3rem; line-height: 1; }
 .pred-fm-name {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
@@ -1052,38 +1075,38 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.12rem;
 }
 .pred-fm-my-score {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.5rem;
+  font-size: 2.4rem;
   color: var(--gold);
   letter-spacing: 0.04em;
   line-height: 1;
 }
 .pred-fm-result {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.8rem;
   color: var(--silver);
   letter-spacing: 0.04em;
   line-height: 1;
 }
 .pred-fm-result.pending { color: var(--muted); }
 .pred-fm-score-label {
-  font-size: 0.55rem;
+  font-size: 0.62rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .pred-fm-pts {
-  padding: 0.35rem 0.875rem;
-  font-size: 0.75rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.88rem;
   font-weight: 700;
   border-top: 1px solid var(--border);
   text-align: center;
 }
-.pred-fm-pts.exact  { background: rgba(26,107,60,0.15);  color: #4cd085; }
-.pred-fm-pts.winner { background: rgba(52,152,219,0.1);  color: #5dade2; }
+.pred-fm-pts.exact  { background: rgba(26,107,60,0.2);   color: #4cd085; }
+.pred-fm-pts.winner { background: rgba(52,152,219,0.12); color: #5dade2; }
 .pred-fm-pts.wrong  { background: rgba(192,57,43,0.1);   color: #e74c3c; }
 .pred-fm-pts.none   { background: transparent; color: var(--muted); }
 
