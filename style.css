@@ -52,49 +52,58 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   min-height: 100vh;
   display: none;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1.5rem;
-  background: radial-gradient(ellipse at top, #1a2d4a 0%, var(--pitch) 65%);
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+  background:
+    radial-gradient(ellipse at 50% 30%, #1e3a5f 0%, var(--pitch) 65%);
+  min-height: 100dvh;
 }
 #view-login.active { display: flex; }
 
 .login-hero {
   text-align: center;
-  margin-bottom: 2.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem 2rem;
 }
 .login-trophy {
-  font-size: 4rem;
+  font-size: 6rem;
   line-height: 1;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
   filter: drop-shadow(0 0 20px rgba(240,180,41,0.5));
   animation: trophy-glow 2.5s ease-in-out infinite alternate;
 }
 @keyframes trophy-glow {
   from { filter: drop-shadow(0 0 10px rgba(240,180,41,0.3)); }
-  to   { filter: drop-shadow(0 0 30px rgba(240,180,41,0.7)); }
+  to   { filter: drop-shadow(0 0 40px rgba(240,180,41,0.9)); }
 }
 .login-title {
-  font-size: 2.8rem;
+  font-size: 3.5rem;
   color: var(--gold);
   line-height: 1;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.4rem;
 }
 .login-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--silver);
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.2em;
 }
 
 .login-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem 1.75rem;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 2rem 1.75rem calc(2rem + env(safe-area-inset-bottom));
   width: 100%;
-  max-width: 380px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
 }
 
 .form-group { margin-bottom: 1.25rem; }
@@ -1315,7 +1324,9 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 @media (min-width: 600px) {
   .match-list { padding: 1.25rem; }
   .predict-body { max-width: 420px; margin: 0 auto; }
-  .login-title { font-size: 3.5rem; }
+  .login-title { font-size: 4rem; }
+  .login-card { max-width: 480px; margin: 0 auto; border-radius: var(--radius); }
+  #view-login { justify-content: center; align-items: center; padding: 2rem; }
   .numpad { max-width: 320px; margin-left: auto; margin-right: auto; }
 }
 
