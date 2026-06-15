@@ -756,9 +756,10 @@ function renderDeadlineBanner() {
 
 async function computeUserAccuracy() {
   const snap = await getDocs(collection(STATE.db, 'predictions'));
-  const finished = {}, scored = {}, exactMap = {}, winnerMap = {};
+  const allPreds = {}, finished = {}, scored = {}, exactMap = {}, winnerMap = {};
   snap.forEach(d => {
     const p = d.data();
+    allPreds[p.userId] = (allPreds[p.userId] || 0) + 1;
     if (p.pointsAwarded != null) {
       finished[p.userId] = (finished[p.userId] || 0) + 1;
       if (p.pointsAwarded === 13) { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
@@ -767,6 +768,7 @@ async function computeUserAccuracy() {
   });
   STATE.users.forEach(u => {
     const total = finished[u.id] || 0;
+    u.predictionsSubmitted = allPreds[u.id]   || 0;
     u.finishedPreds    = total;
     u.computedExact    = exactMap[u.id]  || 0;
     u.computedWinner   = winnerMap[u.id] || 0;
@@ -846,7 +848,10 @@ async function initLeaderboard() {
 }
 
 async function renderLeaderboard(filter) {
-  if (filter === 'overall') { renderLeaderboardTable(STATE.users, null); return; }
+  if (filter === 'overall') {
+    const totalCompleted = STATE.matches.filter(m => m.status === 'completed' && m.resultA != null).length;
+    renderLeaderboardTable(STATE.users, null, totalCompleted); return;
+  }
 
   // This Match Day filter
   if (filter === 'this-match-day') {
@@ -876,22 +881,28 @@ async function renderLeaderboard(filter) {
 
 async function buildFilteredLeaderboard(matchIds, filter) {
   const snap = await getDocs(collection(STATE.db, 'predictions'));
-  const pts = {}, exact = {}, winner = {};
+  const pts = {}, exact = {}, winner = {}, predCount = {};
   snap.forEach(d => {
     const p = d.data();
     if (!matchIds.has(p.matchId)) return;
+    predCount[p.userId] = (predCount[p.userId] || 0) + 1;
     pts[p.userId]    = (pts[p.userId]    || 0) + (p.pointsAwarded || 0);
     if (p.pointsAwarded === 13) exact[p.userId]  = (exact[p.userId]  || 0) + 1;
     if (p.pointsAwarded === 10) winner[p.userId] = (winner[p.userId] || 0) + 1;
   });
+  const totalCompleted = [...matchIds].filter(id => {
+    const m = STATE.matches.find(x => x.matchId === id);
+    return m?.status === 'completed' && m.resultA != null;
+  }).length;
   const sorted = STATE.users.map(u => ({
     ...u, filteredPoints: pts[u.id] || 0,
     filteredExact: exact[u.id] || 0, filteredWinner: winner[u.id] || 0,
+    filteredPredCount: predCount[u.id] || 0,
   })).sort((a, b) => b.filteredPoints - a.filteredPoints);
-  renderLeaderboardTable(sorted, filter);
+  renderLeaderboardTable(sorted, filter, totalCompleted);
 }
 
-function renderLeaderboardTable(users, filter) {
+function renderLeaderboardTable(users, filter, totalCompleted = 0) {
   const myId     = STATE.session.userId;
   const rankIcon = ['🥇','🥈','🥉'];
   const container = document.getElementById('leaderboard-body');
@@ -903,9 +914,10 @@ function renderLeaderboardTable(users, filter) {
   }
 
   const rows = users.map((u, i) => {
-    const pts    = filter ? (u.filteredPoints || 0) : (u.totalPoints || 0);
-    const exact  = filter ? (u.filteredExact  || 0) : (u.computedExact  || 0);
-    const winner = filter ? (u.filteredWinner || 0) : (u.computedWinner || 0);
+    const pts    = filter ? (u.filteredPoints    || 0) : (u.totalPoints    || 0);
+    const exact  = filter ? (u.filteredExact     || 0) : (u.computedExact  || 0);
+    const winner = filter ? (u.filteredWinner    || 0) : (u.computedWinner || 0);
+    const played = filter ? (u.filteredPredCount || 0) : (u.predictionsSubmitted || 0);
     const isMe   = u.id === myId;
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const rankNum = i < 3 ? rankIcon[i] : (i + 1);
@@ -926,12 +938,14 @@ function renderLeaderboardTable(users, filter) {
       <td class="lb-td-rank"><div class="lb-rank-num">${rankNum}</div>${moveHTML}</td>
       <td class="lb-td-player">
         <div class="lb-player-wrap">
-          ${getAvatarHTML(u, 34)}
-          <span class="lb-name-text">${u.nickname}</span>
+          ${getAvatarHTML(u, 32)}
+          <span class="lb-name-text">${u.nickname}${isMe ? '<span class="me-tag">YOU</span>' : ''}</span>
         </div>
       </td>
-      <td class="lb-td-num">${exact}</td>
-      <td class="lb-td-num">${winner}</td>
+      <td class="lb-td-num lb-td-total">${totalCompleted}</td>
+      <td class="lb-td-num lb-td-played">${played}</td>
+      <td class="lb-td-num lb-td-exact">${exact}</td>
+      <td class="lb-td-num lb-td-result">${winner}</td>
       <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
     </tr>`;
 
@@ -940,7 +954,7 @@ function renderLeaderboardTable(users, filter) {
       ? `<button class="lb-drawer-compare" data-uid="${u.id}" data-nickname="${u.nickname}">Compare ↗</button>`
       : '';
     const drawerRow = `<tr class="lb-tr-drawer" data-uid="${u.id}">
-      <td colspan="5">
+      <td colspan="7">
         <div class="lb-drawer">
           <div class="lb-drawer-picks">
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner</span>${champ}</span>
@@ -960,9 +974,11 @@ function renderLeaderboardTable(users, filter) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-num"><span class="lb-th-icon">🎯</span><span class="lb-th-label">Exact</span></th>
-          <th class="lb-th-num"><span class="lb-th-icon">✓</span><span class="lb-th-label">Result</span></th>
-          <th class="lb-th-pts">Pts</th>
+          <th class="lb-th-num"><span class="lb-th-icon">🏁</span><span class="lb-th-label">Total<br>Matches</span></th>
+          <th class="lb-th-num"><span class="lb-th-icon">📋</span><span class="lb-th-label">Matches<br>Played</span></th>
+          <th class="lb-th-num"><span class="lb-th-icon">🎯</span><span class="lb-th-label">Correct<br>Score</span></th>
+          <th class="lb-th-num"><span class="lb-th-icon">✓</span><span class="lb-th-label">Correct<br>Result</span></th>
+          <th class="lb-th-pts"><span class="lb-th-icon">⭐</span><span class="lb-th-label">Points</span></th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
