@@ -39,7 +39,7 @@ h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
 a { color: var(--gold); text-decoration: none; }
 
 /* ── BODY OFFSET for bottom nav ── */
-body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+body { padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
 
 /* ── VIEWS — show/hide ── */
 .view { display: none; }
@@ -289,7 +289,7 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   border-top: 1px solid var(--border);
   display: flex;
   align-items: stretch;
-  height: calc(60px + env(safe-area-inset-bottom));
+  height: calc(72px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bnav-btn {
@@ -298,27 +298,27 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 5px;
   background: none;
   border: none;
   color: var(--muted);
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   transition: color var(--transition);
-  padding: 0.4rem 0.25rem;
+  padding: 0.5rem 0.25rem;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 .bnav-btn:active { transform: scale(0.92); }
 .bnav-btn.active { color: var(--gold); }
 .bnav-icon {
-  font-size: 1.35rem;
+  font-size: 1.7rem;
   line-height: 1;
   transition: transform 0.15s ease;
 }
 .bnav-btn.active .bnav-icon { transform: translateY(-2px); }
 .bnav-label {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -422,29 +422,30 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
    MATCH CARDS — FOTMOB STYLE
    ════════════════════════════════════════ */
 .match-list {
-  padding: 0.75rem;
+  padding: 0.6rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
 }
 
 .fm-card {
   background: var(--card);
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: none;
+  border-bottom: 1px solid var(--border);
   transition: transform 0.15s ease;
 }
 .fm-card:active { transform: scale(0.99); }
 
-/* Stage colour strip on left */
-.fm-card[data-stage="Group"] { border-left: 3px solid var(--gold); }
-.fm-card[data-stage="R32"]   { border-left: 3px solid #7f8c8d; }
-.fm-card[data-stage="R16"]   { border-left: 3px solid var(--silver); }
-.fm-card[data-stage="QF"]    { border-left: 3px solid #e67e22; }
-.fm-card[data-stage="SF"]    { border-left: 3px solid #9b59b6; }
-.fm-card[data-stage="Final"] { border-left: 3px solid var(--gold); box-shadow: 0 0 0 1px rgba(240,180,41,0.2); }
-.fm-card[data-stage="Third"] { border-left: 3px solid #cd7f32; }
+/* Stage colour strip on top */
+.fm-card[data-stage="Group"] { border-top: 3px solid var(--gold); }
+.fm-card[data-stage="R32"]   { border-top: 3px solid #7f8c8d; }
+.fm-card[data-stage="R16"]   { border-top: 3px solid var(--silver); }
+.fm-card[data-stage="QF"]    { border-top: 3px solid #e67e22; }
+.fm-card[data-stage="SF"]    { border-top: 3px solid #9b59b6; }
+.fm-card[data-stage="Final"] { border-top: 3px solid var(--gold); }
+.fm-card[data-stage="Third"] { border-top: 3px solid #cd7f32; }
 
 .fm-header {
   font-size: 0.72rem;
