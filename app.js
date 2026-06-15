@@ -37,6 +37,16 @@ const STATE = {
   currentPredictMatch: null,
 };
 
+// ── Rank movement helpers ──────────────────────────────
+function loadPrevRanks() {
+  try { return JSON.parse(localStorage.getItem('wc2026_prevRanks')) || {}; } catch { return {}; }
+}
+function saveRankSnapshot(rankedUsers) {
+  const snap = {};
+  rankedUsers.forEach((u, i) => { snap[u.id] = i + 1; });
+  localStorage.setItem('wc2026_prevRanks', JSON.stringify(snap));
+}
+
 // ── Session ────────────────────────────────────────────
 const SESSION_KEY = 'wc2026_session';
 const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
@@ -329,17 +339,8 @@ async function openChampionModal(userData = null) {
   if (userData?.championPick)   document.getElementById('champion-select').value    = userData.championPick;
   if (userData?.goldenBootPick) document.getElementById('golden-boot-select').value = userData.goldenBootPick;
 
-  // Change skip button label based on whether picks exist
   const hasPicks = userData?.championPick && userData?.goldenBootPick;
   document.getElementById('skip-champion-btn').textContent = hasPicks ? 'Close' : 'Skip for now';
-
-  // Show current avatar in modal
-  const prev = document.getElementById('modal-avatar-preview');
-  if (userData?.photoURL) {
-    prev.innerHTML = `<img src="${userData.photoURL}" style="width:52px;height:52px;object-fit:cover;">`;
-  } else if (STATE.session) {
-    prev.innerHTML = getAvatarHTML(STATE.session, 52);
-  }
 
   document.getElementById('champion-modal').style.display = 'flex';
 }
@@ -352,20 +353,10 @@ async function saveChampionPick() {
   const btn = document.getElementById('save-champion-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  // Check for new photo
-  const photoFile = document.getElementById('modal-photo-input').files[0];
-  let updates = { championPick: champion, goldenBootPick: goldenBoot };
-  if (photoFile) {
-    btn.textContent = 'Uploading photo…';
-    updates.photoURL = await resizeImageToBase64(photoFile, 80);
-  }
-
   try {
-    await setDoc(doc(STATE.db, 'users', STATE.session.userId), updates, { merge: true });
+    await setDoc(doc(STATE.db, 'users', STATE.session.userId), { championPick: champion, goldenBootPick: goldenBoot }, { merge: true });
     showToast(`🏆 ${champion} to win · ⚽ ${goldenBoot} top scorer!`, 'success');
     document.getElementById('champion-modal').style.display = 'none';
-    // Reset photo input
-    document.getElementById('modal-photo-input').value = '';
   } catch (e) {
     const msg = e?.code || e?.message || String(e);
     showToast(`Save failed: ${msg}`, 'error');
@@ -379,6 +370,15 @@ async function saveChampionPick() {
 // ═══════════════════════════════════════════════════════
 let activeDateKey = '';
 
+// Knockout stage keys (used for pill data-date on knockout matches)
+const KNOCKOUT_STAGES = ['Round of 32', 'Round of 16', 'Quarter-Final', 'Semi-Final', 'Third Place', 'Final'];
+const KNOCKOUT_LABEL  = { 'Round of 32': 'Round of 32', 'Round of 16': 'Round of 16', 'Quarter-Final': 'Quarter Finals', 'Semi-Final': 'Semi Finals', 'Third Place': '3rd Place', 'Final': 'Final' };
+
+// Get US Eastern calendar date string (YYYY-MM-DD) for a match
+function getETDate(kickoffUTC) {
+  return new Date(kickoffUTC).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
 async function initHomeView() {
   await Promise.all([fetchMatches(), fetchMyPredictions()]);
   buildDateNav();
@@ -386,27 +386,47 @@ async function initHomeView() {
 }
 
 function buildDateNav() {
-  // Collect unique UTC date strings (YYYY-MM-DD)
-  const dateSet = [...new Set(MATCHES.map(m => m.kickoffUTC.slice(0, 10)))].sort();
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-
   const nav = document.getElementById('date-nav');
-  nav.innerHTML = dateSet.map(d => {
-    const dt = new Date(d + 'T12:00:00Z');
-    const isToday = d === todayStr;
-    const label = isToday ? 'Today' :
-      dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    return `<button class="date-pill" data-date="${d}">${label}</button>`;
+  const now = Date.now();
+
+  // All unique ET dates across all matches, sorted
+  const allDates = [...new Set(MATCHES.map(m => getETDate(m.kickoffUTC)))].sort();
+
+  // Pre-calculate group stage day number (only counting group stage dates)
+  const groupDates = allDates.filter(d =>
+    MATCHES.some(m => getETDate(m.kickoffUTC) === d && !KNOCKOUT_STAGES.includes(m.matchDay))
+  );
+
+  nav.innerHTML = allDates.map(date => {
+    const dt = new Date(date + 'T12:00:00');
+    const dateLabel = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    // Determine label: group stage or knockout
+    const stagesOnDay = [...new Set(
+      MATCHES.filter(m => getETDate(m.kickoffUTC) === date).map(m => m.matchDay)
+    )];
+    const isKnockout = stagesOnDay.every(s => KNOCKOUT_STAGES.includes(s));
+    const mainLabel = isKnockout
+      ? KNOCKOUT_LABEL[stagesOnDay[0]] || stagesOnDay[0]
+      : `Match Day ${groupDates.indexOf(date) + 1}`;
+
+    return `<button class="date-pill" data-date="${date}">
+      <span class="pill-md">${mainLabel}</span>
+      <span class="pill-sub">${dateLabel}</span>
+    </button>`;
   }).join('');
 
-  nav.querySelectorAll('.date-pill').forEach(btn => {
-    btn.addEventListener('click', () => selectDate(btn.dataset.date));
-  });
+  nav.querySelectorAll('.date-pill').forEach(btn =>
+    btn.addEventListener('click', () => selectDate(btn.dataset.date))
+  );
 
-  // Select today, else nearest future date, else first date
-  const target = dateSet.includes(todayStr)
-    ? todayStr
-    : (dateSet.find(d => d > todayStr) || dateSet[0]);
+  // Auto-select: earliest upcoming match
+  const upcoming = MATCHES
+    .filter(m => new Date(m.kickoffUTC) > now)
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
+  const target = upcoming.length
+    ? getETDate(upcoming[0].kickoffUTC)
+    : allDates[allDates.length - 1];
   selectDate(target);
 }
 
@@ -414,12 +434,11 @@ function selectDate(dateKey) {
   activeDateKey = dateKey;
   document.querySelectorAll('.date-pill').forEach(b =>
     b.classList.toggle('active', b.dataset.date === dateKey));
-  // Scroll active pill into center
-  const active = document.querySelector(`.date-pill[data-date="${dateKey}"]`);
+  const active = document.querySelector(`.date-pill[data-date="${CSS.escape(dateKey)}"]`);
   active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
   const filtered = STATE.matches
-    .filter(m => m.kickoffUTC.startsWith(dateKey))
+    .filter(m => getETDate(m.kickoffUTC) === dateKey)
     .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
 
   const list = document.getElementById('match-list');
@@ -429,6 +448,7 @@ function selectDate(dateKey) {
   }
   list.innerHTML = filtered.map(renderMatchCard).join('');
   attachCardListeners();
+  renderDeadlineBanner();
 }
 
 function isToday(iso) {
@@ -537,6 +557,7 @@ function startCountdownTimers() {
       el.textContent = `${lastMin ? '🔥' : '⏳'} Locks in ${t}`;
       el.classList.toggle('urgent', urgent);
     });
+    renderDeadlineBanner();
   }, 30000));
 }
 
@@ -660,18 +681,130 @@ async function savePrediction() {
   btn.disabled = false; btn.textContent = 'Save Prediction';
 }
 
+// ── Deadline banner (matches tab) ─────────────────────
+function renderDeadlineBanner() {
+  const banner = document.getElementById('deadline-banner');
+  if (!banner) return;
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const soonMatch = STATE.matches
+    .filter(m => {
+      const lockMs = getLockMs(m);
+      return !isLocked(m) && lockMs - now <= TWO_HOURS && lockMs > now && !STATE.predictions[m.matchId];
+    })
+    .sort((a, b) => getLockMs(a) - getLockMs(b))[0];
+
+  if (!soonMatch) { banner.style.display = 'none'; return; }
+
+  const t = timeUntil(getLockMs(soonMatch));
+  banner.style.display = 'flex';
+  banner.innerHTML = `⚠️ <span><strong>${soonMatch.teamA} vs ${soonMatch.teamB}</strong> locks in <strong>${t}</strong> — no pick yet</span>
+    <button class="banner-predict-btn" id="banner-btn">Predict now →</button>`;
+  document.getElementById('banner-btn').addEventListener('click', () => openPredictView(soonMatch.matchId));
+}
+
 // ═══════════════════════════════════════════════════════
 // VIEW 4 — LEADERBOARD
 // ═══════════════════════════════════════════════════════
+
+async function computeUserAccuracy() {
+  const snap = await getDocs(collection(STATE.db, 'predictions'));
+  const finished = {}, scored = {};
+  snap.forEach(d => {
+    const p = d.data();
+    if (p.pointsAwarded != null) {
+      finished[p.userId] = (finished[p.userId] || 0) + 1;
+      if (p.pointsAwarded > 0) scored[p.userId] = (scored[p.userId] || 0) + 1;
+    }
+  });
+  STATE.users.forEach(u => {
+    const total = finished[u.id] || 0;
+    u.finishedPreds = total;
+    u.accuracy = total >= 3 ? Math.round(((scored[u.id] || 0) / total) * 100) : null;
+  });
+}
+
+function getCurrentMatchDay() {
+  const now = Date.now();
+  const upcoming = STATE.matches
+    .filter(m => new Date(m.kickoffUTC) > now)
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
+  if (upcoming.length) return upcoming[0].matchDay;
+  return [...STATE.matches].sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC))[0]?.matchDay || null;
+}
+
+async function openCompareModal(userId, nickname) {
+  const modal = document.getElementById('compare-modal');
+  const title = document.getElementById('compare-title');
+  const body  = document.getElementById('compare-body');
+
+  title.textContent = `You vs ${nickname}`;
+  body.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  modal.style.display = 'flex';
+
+  const snap = await getDocs(query(
+    collection(STATE.db, 'predictions'),
+    where('userId', '==', userId)
+  ));
+  const theirPreds = {};
+  snap.forEach(d => { const p = d.data(); theirPreds[p.matchId] = p; });
+
+  const completed = STATE.matches
+    .filter(m => m.status === 'completed' && m.resultA !== null)
+    .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));
+
+  if (completed.length === 0) {
+    body.innerHTML = '<p style="text-align:center;color:var(--muted);padding:1.5rem">No completed matches yet</p>';
+    return;
+  }
+
+  const ptsCls   = p => p === 3 ? 'exact' : p === 10 ? 'winner' : p === 0 ? 'wrong' : 'none';
+  const ptsLabel = p => p === 3 ? '+3 ⚽' : p === 10 ? '+10 ✓' : p === 0 ? '0 pts' : '–';
+
+  body.innerHTML = completed.map(m => {
+    const mine   = STATE.predictions[m.matchId];
+    const theirs = theirPreds[m.matchId];
+    const myPts  = mine?.pointsAwarded ?? null;
+    const thPts  = theirs ? calculatePoints(theirs.predictedA, theirs.predictedB, m.resultA, m.resultB) : null;
+
+    return `<div class="compare-row">
+      <div class="compare-match-label">${getFlag(m.teamA, m.flagA)} ${m.teamA} <strong>${m.resultA}–${m.resultB}</strong> ${m.teamB} ${getFlag(m.teamB, m.flagB)}</div>
+      <div class="compare-picks">
+        <div class="compare-pick ${ptsCls(myPts)}">
+          <span class="compare-who">You</span>
+          <span class="compare-score">${mine ? `${mine.predictedA}–${mine.predictedB}` : '–'}</span>
+          <span class="compare-pts">${ptsLabel(myPts)}</span>
+        </div>
+        <div class="compare-pick ${ptsCls(thPts)}">
+          <span class="compare-who">${nickname}</span>
+          <span class="compare-score">${theirs ? `${theirs.predictedA}–${theirs.predictedB}` : '–'}</span>
+          <span class="compare-pts">${ptsLabel(thPts)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function initLeaderboard() {
   document.getElementById('leaderboard-body').innerHTML =
-    '<tr><td colspan="5" class="text-center"><div class="spinner"></div></td></tr>';
+    '<div class="loading-center"><div class="spinner"></div></div>';
   await fetchUsers();
+  await computeUserAccuracy();
   renderLeaderboard('overall');
 }
 
 async function renderLeaderboard(filter) {
   if (filter === 'overall') { renderLeaderboardTable(STATE.users, null); return; }
+
+  // This Match Day filter
+  if (filter === 'this-match-day') {
+    const currentDay = getCurrentMatchDay();
+    if (!currentDay) { renderLeaderboardTable(STATE.users, null); return; }
+    const ids = new Set(STATE.matches.filter(m => m.matchDay === currentDay).map(m => m.matchId));
+    await buildFilteredLeaderboard(ids, `📅 ${currentDay}`);
+    return;
+  }
 
   // Weekly filter: week-1 through week-6
   if (filter.startsWith('week-')) {
@@ -708,9 +841,10 @@ async function buildFilteredLeaderboard(matchIds, filter) {
 }
 
 function renderLeaderboardTable(users, filter) {
-  const myId  = STATE.session.userId;
+  const myId     = STATE.session.userId;
   const rankIcon = ['🥇','🥈','🥉'];
   const container = document.getElementById('leaderboard-body');
+  const prevRanks = loadPrevRanks();
 
   if (users.length === 0) {
     container.innerHTML = '<div class="lb-empty">No data yet</div>';
@@ -727,12 +861,24 @@ function renderLeaderboardTable(users, filter) {
     const fireBadge   = u.lastMinuteCount > 0 ? ' 🔥' : '';
     const champLine   = u.championPick ? `<span class="lb-champ-pick">🏆 ${u.championPick}</span>` : '';
 
-    return `<div class="lb-row ${isMe ? 'lb-me' : ''} ${rankCls}">
-      <div class="lb-rank">${rankDisplay}</div>
+    // Rank movement arrow
+    let moveHTML = '';
+    if (prevRanks[u.id] != null) {
+      const diff = prevRanks[u.id] - (i + 1); // positive = moved up
+      if (diff > 0)      moveHTML = `<span class="lb-rank-move up">↑${diff}</span>`;
+      else if (diff < 0) moveHTML = `<span class="lb-rank-move down">↓${Math.abs(diff)}</span>`;
+      else               moveHTML = `<span class="lb-rank-move same">–</span>`;
+    }
+
+    // Accuracy badge (overall view only)
+    const accHTML = (!filter && u.accuracy != null) ? `<span class="lb-accuracy lb-stats">· ${u.accuracy}%</span>` : '';
+
+    return `<div class="lb-row ${isMe ? 'lb-me' : ''} ${rankCls}" data-uid="${u.id}" data-nickname="${u.nickname}">
+      <div class="lb-rank">${rankDisplay}${moveHTML}</div>
       <div class="lb-avatar">${getAvatarHTML(u, 44)}</div>
       <div class="lb-info">
         <div class="lb-name">${u.nickname}${isMe ? ' <span class="me-tag">You</span>' : ''}${fireBadge}</div>
-        <div class="lb-sub">${champLine}<span class="lb-stats">${exact} exact · ${winner} results</span></div>
+        <div class="lb-sub">${champLine}<span class="lb-stats">${exact} exact · ${winner} results</span>${accHTML}</div>
       </div>
       <div class="lb-pts-col">
         <span class="lb-pts">${pts}</span>
@@ -743,6 +889,18 @@ function renderLeaderboardTable(users, filter) {
 
   document.getElementById('leaderboard-updated').textContent =
     `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`;
+
+  // Save rank snapshot for next visit (overall ranking only)
+  if (!filter) saveRankSnapshot(users);
+
+  // Row tap → compare predictions (not yourself)
+  document.querySelectorAll('.lb-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const uid = row.dataset.uid;
+      if (uid === myId) return;
+      openCompareModal(uid, row.dataset.nickname);
+    });
+  });
 }
 
 function populateLeaderboardFilter() {
@@ -750,6 +908,7 @@ function populateLeaderboardFilter() {
   const matchDays = [...new Set(STATE.matches.map(m => m.matchDay))];
   sel.innerHTML =
     '<option value="overall">🏅 Overall</option>' +
+    '<option value="this-match-day">📅 This Match Day</option>' +
     '<optgroup label="By Week">' +
     ['Jun 11–17','Jun 18–24','Jun 25–Jul 1','Jul 2–8','Jul 9–15','Jul 16–19']
       .map((l, i) => `<option value="week-${i+1}">Week ${i+1} (${l})</option>`).join('') +
@@ -1075,11 +1234,8 @@ async function initApp() {
       getAvatarHTML({ nickname: session.nickname, photoURL: '' }, 32);
   }
 
-  // Tapping topbar avatar opens My Picks modal
-  document.getElementById('topbar-avatar-wrap').onclick = async () => {
-    const s = await getDoc(doc(STATE.db, 'users', session.userId));
-    openChampionModal(s.exists() ? s.data() : null);
-  };
+  // Tapping topbar avatar opens Profile modal
+  document.getElementById('topbar-avatar-wrap').onclick = () => openProfileModal();
   await initHomeView();
   showView('view-home');
   populateLeaderboardFilter();
@@ -1218,22 +1374,77 @@ function wireEvents() {
     const s = await getDoc(doc(STATE.db, 'users', STATE.session.userId));
     openChampionModal(s.exists() ? s.data() : null);
   });
-  // Modal photo preview
-  document.getElementById('modal-photo-input').addEventListener('change', async e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const prev = document.getElementById('modal-avatar-preview');
-    prev.innerHTML = '<div style="font-size:0.7rem;color:var(--muted)">Processing…</div>';
-    try {
-      const b64 = await resizeImageToBase64(file, 80);
-      prev.innerHTML = `<img src="${b64}" style="width:52px;height:52px;object-fit:cover;border-radius:50%;">`;
-    } catch (err) {
-      console.error('Photo error:', err);
-      prev.innerHTML = '❌';
-      showToast('Could not load photo — try a JPG or PNG', 'error');
-    }
-  });
 }
+
+// ── Profile Modal ───────────────────────────────────────
+let _profilePhotoB64 = null;
+
+async function openProfileModal() {
+  const modal = document.getElementById('profile-modal');
+  const prev   = document.getElementById('profile-avatar-preview');
+  const nameEl = document.getElementById('profile-name');
+  _profilePhotoB64 = null;
+
+  const s = STATE.session;
+  nameEl.textContent = s?.nickname || '';
+  try {
+    const uSnap = await getDoc(doc(STATE.db, 'users', s.userId));
+    const uData = uSnap.exists() ? uSnap.data() : {};
+    if (uData.photoURL) {
+      prev.innerHTML = `<img src="${uData.photoURL}" style="width:90px;height:90px;object-fit:cover;">`;
+    } else {
+      prev.innerHTML = getAvatarHTML({ nickname: s.nickname, photoURL: '' }, 90);
+    }
+  } catch { prev.innerHTML = '👤'; }
+
+  modal.style.display = 'flex';
+}
+
+// Compare modal close
+document.getElementById('compare-modal-close').addEventListener('click', () => {
+  document.getElementById('compare-modal').style.display = 'none';
+});
+document.getElementById('compare-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('compare-modal')) document.getElementById('compare-modal').style.display = 'none';
+});
+
+document.getElementById('profile-modal-close').addEventListener('click', () => {
+  document.getElementById('profile-modal').style.display = 'none';
+  document.getElementById('profile-photo-input').value = '';
+  _profilePhotoB64 = null;
+});
+
+document.getElementById('profile-photo-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const prev = document.getElementById('profile-avatar-preview');
+  prev.innerHTML = '<div style="font-size:0.8rem;color:var(--muted);padding:1rem">Processing…</div>';
+  try {
+    _profilePhotoB64 = await resizeImageToBase64(file, 80);
+    prev.innerHTML = `<img src="${_profilePhotoB64}" style="width:90px;height:90px;object-fit:cover;">`;
+  } catch (err) {
+    prev.innerHTML = '❌';
+    showToast('Could not load photo — try a JPG or PNG', 'error');
+  }
+});
+
+document.getElementById('profile-save-btn').addEventListener('click', async () => {
+  if (!_profilePhotoB64) { showToast('Pick a photo first', 'error'); return; }
+  const btn = document.getElementById('profile-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await updateDoc(doc(STATE.db, 'users', STATE.session.userId), { photoURL: _profilePhotoB64 });
+    document.getElementById('topbar-avatar').innerHTML =
+      getAvatarHTML({ nickname: STATE.session.nickname, photoURL: _profilePhotoB64 }, 32);
+    showToast('Photo updated!', 'success');
+    document.getElementById('profile-modal').style.display = 'none';
+    _profilePhotoB64 = null;
+  } catch (e) {
+    showToast('Save failed: ' + (e?.message || e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Photo';
+  }
+});
 
 // ── PWA Install Prompt ─────────────────────────────────
 let _deferredInstallPrompt = null;

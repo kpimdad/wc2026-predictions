@@ -273,6 +273,22 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
   line-height: 1;
 }
 .icon-btn:hover { color: var(--text); }
+.btn-logout {
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--silver);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-logout:hover { border-color: var(--silver); color: var(--text); }
 
 /* ════════════════════════════════════════
    BOTTOM NAV
@@ -388,11 +404,19 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
-  padding: 0.55rem 1.1rem;
+  padding: 0.55rem 1.3rem;
   white-space: nowrap;
   transition: all var(--transition);
   flex-shrink: 0;
 }
+.date-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.pill-md  { font-weight: 700; line-height: 1; }
+.pill-sub { font-size: 0.72em; opacity: 0.75; line-height: 1; }
 .date-pill:hover  { color: var(--text); border-color: var(--text); }
 .date-pill.active {
   background: var(--gold);
@@ -862,6 +886,90 @@ body { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
   vertical-align: middle;
   margin-left: 0.3rem;
 }
+
+/* ── Leaderboard row tap ─────────────────────── */
+.lb-row { cursor: pointer; }
+.lb-row:active { opacity: 0.8; }
+
+/* ── Rank movement badges ────────────────────── */
+.lb-rank-move {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.lb-rank-move.up   { background: rgba(46,204,113,0.15); color: #2ecc71; }
+.lb-rank-move.down { background: rgba(231,76,60,0.15);  color: #e74c3c; }
+.lb-rank-move.same { color: var(--muted); }
+
+/* ── Accuracy badge ──────────────────────────── */
+.lb-accuracy { color: #3498db; }
+
+/* ── Deadline banner ─────────────────────────── */
+.deadline-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(243,156,18,0.12);
+  border-bottom: 2px solid rgba(243,156,18,0.5);
+  color: #fdebd0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  flex-wrap: wrap;
+}
+.banner-predict-btn {
+  background: #f39c12;
+  border: none;
+  border-radius: 6px;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Compare modal ───────────────────────────── */
+.compare-row {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0;
+}
+.compare-row:last-child { border-bottom: none; }
+.compare-match-label {
+  font-size: 0.78rem;
+  color: var(--silver);
+  margin-bottom: 0.4rem;
+}
+.compare-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.compare-pick {
+  background: var(--card2);
+  border-radius: 8px;
+  padding: 0.5rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  border: 1.5px solid var(--border);
+}
+.compare-pick.exact  { border-color: rgba(243,156,18,0.6); }
+.compare-pick.winner { border-color: rgba(46,204,113,0.6); }
+.compare-pick.wrong  { border-color: rgba(231,76,60,0.4); opacity: 0.75; }
+.compare-who   { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.compare-score { font-size: 1.05rem; font-weight: 700; }
+.compare-pts   { font-size: 0.7rem; font-weight: 600; }
+.compare-pick.exact  .compare-pts { color: #f39c12; }
+.compare-pick.winner .compare-pts { color: #2ecc71; }
+.compare-pick.wrong  .compare-pts { color: #e74c3c; }
+.compare-pick.none   .compare-pts { color: var(--muted); }
 
 /* ════════════════════════════════════════
    LEADERBOARD VIEW
