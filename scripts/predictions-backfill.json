@@ -1,191 +1,1150 @@
 [
-  // ── ANU ───────────────────────────────────────────────────────────────────
-  { "nickname": "Anu",      "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Anu",      "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Anu",      "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Anu",      "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Anu",      "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Anu",      "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Anu",      "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Anu",      "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Anu",      "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Anu",      "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Anu",      "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Anu",      "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Anu",      "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Anu",      "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── IMDAD (Day 3 second/override submission used) ─────────────────────────
-  { "nickname": "Imdad",    "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Imdad",    "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Imdad",    "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 0, "predictedB": 2 },
-  { "nickname": "Imdad",    "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Imdad",    "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 3, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 2, "predictedB": 2 },
-  { "nickname": "Imdad",    "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 2 },
-  { "nickname": "Imdad",    "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Imdad",    "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Imdad",    "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── NADI ──────────────────────────────────────────────────────────────────
-  { "nickname": "Nadi",     "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Nadi",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Nadi",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Nadi",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Nadi",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Nadi",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Nadi",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Nadi",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── SAFI ──────────────────────────────────────────────────────────────────
-  { "nickname": "Safi",     "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Safi",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Safi",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Safi",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Safi",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Safi",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Safi",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Safi",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── HANNATHA (listed as "Hanna" in predictions) ───────────────────────────
-  { "nickname": "Hannatha", "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Hannatha", "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Hannatha", "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Hannatha", "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Hannatha", "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Hannatha", "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Hannatha", "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hannatha", "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── HAYA ──────────────────────────────────────────────────────────────────
-  { "nickname": "Haya",     "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Haya",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Haya",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Haya",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Haya",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Haya",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Haya",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Haya",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── HIBATHA (listed as "Hiba") ────────────────────────────────────────────
-  { "nickname": "Hibatha",  "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Hibatha",  "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Hibatha",  "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Hibatha",  "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Hibatha",  "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Hibatha",  "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Hibatha",  "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Hibatha",  "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── USAMA (Day 4 emoji set used; Day 5 text set used) ────────────────────
-  { "nickname": "Usama",    "teamA": "Canada",       "teamB": "Bosnia & Herzegovina", "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "USA",           "teamB": "Paraguay",            "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Usama",    "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Usama",    "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 0, "predictedB": 2 },
-  { "nickname": "Usama",    "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Usama",    "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Usama",    "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 6, "predictedB": 0 },
-  { "nickname": "Usama",    "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 1, "predictedB": 0 },
-  { "nickname": "Usama",    "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Usama",    "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 0 },
-
-  // ── RAJI ──────────────────────────────────────────────────────────────────
-  { "nickname": "Raji",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Raji",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Raji",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Raji",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Raji",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Raji",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Raji",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Raji",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Raji",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Raji",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Raji",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Raji",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── SANA (separate user from Sani) ───────────────────────────────────────
-  { "nickname": "Sana",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 4 },
-  { "nickname": "Sana",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 3 },
-  { "nickname": "Sana",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 1, "predictedB": 3 },
-  { "nickname": "Sana",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Sana",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Sana",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Sana",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Sana",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Sana",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Sana",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Sana",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Sana",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── SANI ──────────────────────────────────────────────────────────────────
-  { "nickname": "Sani",     "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Sani",     "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Sani",     "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Sani",     "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 0, "predictedB": 2 },
-  { "nickname": "Sani",     "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Sani",     "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Sani",     "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Sani",     "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Sani",     "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Sani",     "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Sani",     "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Sani",     "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── NAFLU ─────────────────────────────────────────────────────────────────
-  { "nickname": "Naflu",    "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 0, "predictedB": 2 },
-  { "nickname": "Naflu",    "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 2, "predictedB": 2 },
-  { "nickname": "Naflu",    "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Naflu",    "teamA": "Germany",       "teamB": "Curaçao",             "predictedA": 4, "predictedB": 0 },
-  { "nickname": "Naflu",    "teamA": "Netherlands",   "teamB": "Japan",               "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Ivory Coast",   "teamB": "Ecuador",             "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Sweden",        "teamB": "Tunisia",             "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Spain",         "teamB": "Cape Verde",          "predictedA": 5, "predictedB": 0 },
-  { "nickname": "Naflu",    "teamA": "Belgium",       "teamB": "Egypt",               "predictedA": 2, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Saudi Arabia",  "teamB": "Uruguay",             "predictedA": 1, "predictedB": 1 },
-  { "nickname": "Naflu",    "teamA": "Iran",          "teamB": "New Zealand",         "predictedA": 1, "predictedB": 1 },
-
-  // ── HISHU (listed as "Hishma", only Day 3 predictions provided) ───────────
-  { "nickname": "Hishu",    "teamA": "Qatar",         "teamB": "Switzerland",         "predictedA": 1, "predictedB": 2 },
-  { "nickname": "Hishu",    "teamA": "Brazil",        "teamB": "Morocco",             "predictedA": 3, "predictedB": 2 },
-  { "nickname": "Hishu",    "teamA": "Haiti",         "teamB": "Scotland",            "predictedA": 0, "predictedB": 1 },
-  { "nickname": "Hishu",    "teamA": "Australia",     "teamB": "Türkiye",             "predictedA": 0, "predictedB": 2 }
+  {
+    "nickname": "Anu",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Anu",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 0,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 3,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 2,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Imdad",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Nadi",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Safi",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hannatha",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Haya",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hibatha",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Canada",
+    "teamB": "Bosnia & Herzegovina",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "USA",
+    "teamB": "Paraguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 0,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 6,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 1,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Usama",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Raji",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 4
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 1,
+    "predictedB": 3
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sana",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 0,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Sani",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 0,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 2,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Germany",
+    "teamB": "Curaçao",
+    "predictedA": 4,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Netherlands",
+    "teamB": "Japan",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Ivory Coast",
+    "teamB": "Ecuador",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Sweden",
+    "teamB": "Tunisia",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Spain",
+    "teamB": "Cape Verde",
+    "predictedA": 5,
+    "predictedB": 0
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Belgium",
+    "teamB": "Egypt",
+    "predictedA": 2,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Saudi Arabia",
+    "teamB": "Uruguay",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Naflu",
+    "teamA": "Iran",
+    "teamB": "New Zealand",
+    "predictedA": 1,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hishu",
+    "teamA": "Qatar",
+    "teamB": "Switzerland",
+    "predictedA": 1,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Hishu",
+    "teamA": "Brazil",
+    "teamB": "Morocco",
+    "predictedA": 3,
+    "predictedB": 2
+  },
+  {
+    "nickname": "Hishu",
+    "teamA": "Haiti",
+    "teamB": "Scotland",
+    "predictedA": 0,
+    "predictedB": 1
+  },
+  {
+    "nickname": "Hishu",
+    "teamA": "Australia",
+    "teamB": "Türkiye",
+    "predictedA": 0,
+    "predictedB": 2
+  }
 ]
