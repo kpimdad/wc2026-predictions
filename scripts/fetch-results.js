@@ -15,7 +15,10 @@ const path    = require('path');
 const admin   = require('firebase-admin');
 
 // ── Load MATCHES array from static matches.js ─────────────────────────────────
-const MATCHES = require(path.resolve(__dirname, '..', 'matches.js'));
+const loaded  = require(path.resolve(__dirname, '..', 'matches.js'));
+// matches.js may export the array directly or as { MATCHES }
+const MATCHES = Array.isArray(loaded) ? loaded : (loaded.MATCHES || loaded.default);
+console.log('Fixtures loaded:', Array.isArray(MATCHES) ? MATCHES.length : 'FAILED — got ' + typeof loaded);
 
 // ── Firebase Admin ────────────────────────────────────────────────────────────
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
