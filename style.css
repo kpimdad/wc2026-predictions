@@ -49,26 +49,25 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
    LOGIN VIEW
    ════════════════════════════════════════ */
 #view-login {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: none;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
-  padding: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  gap: 2rem;
   background:
     radial-gradient(ellipse at 50% 30%, #1e3a5f 0%, var(--pitch) 65%);
-  min-height: 100dvh;
 }
 #view-login.active { display: flex; }
 
 .login-hero {
   text-align: center;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1.5rem 2rem;
+  padding: 0;
 }
 .login-trophy {
   font-size: 6rem;
@@ -97,13 +96,11 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 .login-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  padding: 2rem 1.75rem calc(2rem + env(safe-area-inset-bottom));
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
   width: 100%;
-  box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
+  max-width: 440px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
 }
 
 .form-group { margin-bottom: 1.25rem; }
@@ -124,8 +121,8 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;
-  font-size: 1rem;
-  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  padding: 0.9rem 1.1rem;
   appearance: none;
   -webkit-appearance: none;
   transition: border-color var(--transition);
@@ -366,19 +363,44 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 /* ════════════════════════════════════════
    TABS
    ════════════════════════════════════════ */
-.tabs {
+/* ── Date navigation strip ── */
+.date-nav-wrap {
   position: sticky;
-  top: 52px; /* height of topbar */
+  top: 52px;
   z-index: 90;
   background: var(--pitch);
-  display: flex;
   border-bottom: 1px solid var(--border);
-  padding: 0 1rem;
-  gap: 0;
+}
+.date-nav {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.tabs::-webkit-scrollbar { display: none; }
+.date-nav::-webkit-scrollbar { display: none; }
+.date-pill {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  white-space: nowrap;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.date-pill:hover  { color: var(--text); border-color: var(--text); }
+.date-pill.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--pitch);
+}
+
+/* Keep admin/my-preds tab-btns working */
 .tab-btn {
   background: none;
   border: none;
@@ -393,7 +415,7 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   white-space: nowrap;
   margin-bottom: -1px;
 }
-.tab-btn:hover { color: var(--text); }
+.tab-btn:hover  { color: var(--text); }
 .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
 
 /* ════════════════════════════════════════
@@ -493,12 +515,28 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.45rem 0.875rem;
+  padding: 0.5rem 0.875rem;
   background: rgba(255,255,255,0.03);
   border-top: 1px solid var(--border);
   font-size: 0.8rem;
   flex-wrap: wrap;
 }
+/* Predict CTA — button centered, countdown below */
+.fm-pick-strip.predict-cta {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 0.875rem;
+}
+.fm-pick-strip.predict-cta .fm-btn-predict {
+  width: 100%;
+  max-width: 200px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+.fm-pick-strip.predict-cta .fm-countdown { margin-left: 0; }
+/* Has prediction — compact row */
+.fm-pick-strip.has-pick { justify-content: flex-start; }
 .fm-pick-strip.locked { color: var(--muted); font-size: 0.75rem; }
 .fm-pick-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .fm-pick-score {
@@ -1325,8 +1363,7 @@ body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
   .match-list { padding: 1.25rem; }
   .predict-body { max-width: 420px; margin: 0 auto; }
   .login-title { font-size: 4rem; }
-  .login-card { max-width: 480px; margin: 0 auto; border-radius: var(--radius); }
-  #view-login { justify-content: center; align-items: center; padding: 2rem; }
+  .login-card { max-width: 480px; }
   .numpad { max-width: 320px; margin-left: auto; margin-right: auto; }
 }
 

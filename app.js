@@ -166,7 +166,7 @@ function getAvatarHTML(user, size = 36) {
 
 // ── Scoring ────────────────────────────────────────────
 function calculatePoints(pA, pB, rA, rB) {
-  if (pA === rA && pB === rB) return 20;          // exact scoreline
+  if (pA === rA && pB === rB) return 3;            // exact scoreline
   if (Math.sign(pA - pB) === Math.sign(rA - rB)) return 10; // correct result/winner
   return 0;
 }
@@ -377,28 +377,54 @@ async function saveChampionPick() {
 // ═══════════════════════════════════════════════════════
 // VIEW 2 — HOME / MATCH FEED
 // ═══════════════════════════════════════════════════════
-let activeHomeTab = 'upcoming';
+let activeDateKey = '';
 
 async function initHomeView() {
   await Promise.all([fetchMatches(), fetchMyPredictions()]);
-  renderHomeTab(activeHomeTab);
+  buildDateNav();
   startCountdownTimers();
 }
 
-function renderHomeTab(tab) {
-  activeHomeTab = tab;
-  document.querySelectorAll('#view-home .tab-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.tab === tab));
-  const now = Date.now();
-  const filtered = STATE.matches.filter(m => {
-    if (tab === 'upcoming')  return m.status !== 'completed' && new Date(m.kickoffUTC).getTime() > now - 7200000;
-    if (tab === 'today')     return isToday(m.kickoffUTC) || m.status === 'locked';
-    if (tab === 'completed') return m.status === 'completed';
-    return true;
-  }).sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
+function buildDateNav() {
+  // Collect unique UTC date strings (YYYY-MM-DD)
+  const dateSet = [...new Set(MATCHES.map(m => m.kickoffUTC.slice(0, 10)))].sort();
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+
+  const nav = document.getElementById('date-nav');
+  nav.innerHTML = dateSet.map(d => {
+    const dt = new Date(d + 'T12:00:00Z');
+    const isToday = d === todayStr;
+    const label = isToday ? 'Today' :
+      dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return `<button class="date-pill" data-date="${d}">${label}</button>`;
+  }).join('');
+
+  nav.querySelectorAll('.date-pill').forEach(btn => {
+    btn.addEventListener('click', () => selectDate(btn.dataset.date));
+  });
+
+  // Select today, else nearest future date, else first date
+  const target = dateSet.includes(todayStr)
+    ? todayStr
+    : (dateSet.find(d => d > todayStr) || dateSet[0]);
+  selectDate(target);
+}
+
+function selectDate(dateKey) {
+  activeDateKey = dateKey;
+  document.querySelectorAll('.date-pill').forEach(b =>
+    b.classList.toggle('active', b.dataset.date === dateKey));
+  // Scroll active pill into center
+  const active = document.querySelector(`.date-pill[data-date="${dateKey}"]`);
+  active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+  const filtered = STATE.matches
+    .filter(m => m.kickoffUTC.startsWith(dateKey))
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
+
   const list = document.getElementById('match-list');
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚽</div><div class="empty-state-text">No matches here yet</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚽</div><div class="empty-state-text">No matches on this day</div></div>`;
     return;
   }
   list.innerHTML = filtered.map(renderMatchCard).join('');
@@ -442,7 +468,7 @@ function renderMatchCard(m) {
   if (completed) {
     const pts = pred?.pointsAwarded;
     const ptsBadge =
-      pts === 20 ? `<span class="fm-pts exact">+20 pts ⚽</span>` :
+      pts === 3  ? `<span class="fm-pts exact">+3 pts ⚽</span>`  :
       pts === 10 ? `<span class="fm-pts winner">+10 pts ✓</span>` :
       pts === 0  ? `<span class="fm-pts wrong">0 pts</span>`      :
       !pred      ? `<span class="fm-pts none">No pick</span>`     : '';
@@ -457,12 +483,18 @@ function renderMatchCard(m) {
     </div>`;
   } else {
     const urgentClass = countdown && !countdown.includes('d') && !countdown.includes('h') ? 'urgent' : '';
-    pickStrip = `<div class="fm-pick-strip">
-      ${pred
-        ? `<span class="fm-pick-label">Your pick</span><span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span><button class="fm-btn-edit" data-match="${m.matchId}">Edit</button>`
-        : `<button class="fm-btn-predict" data-match="${m.matchId}">+ Predict</button>`}
-      ${countdown ? `<span class="fm-countdown ${urgentClass}">${lastMin ? '🔥' : '⏳'} ${countdown}</span>` : ''}
-    </div>`;
+    const countdownHTML = countdown ? `<span class="fm-countdown ${urgentClass}">${lastMin ? '🔥' : '⏳'} ${countdown}</span>` : '';
+    pickStrip = pred
+      ? `<div class="fm-pick-strip has-pick">
+           <span class="fm-pick-label">Your pick</span>
+           <span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span>
+           <button class="fm-btn-edit" data-match="${m.matchId}">Edit</button>
+           ${countdownHTML}
+         </div>`
+      : `<div class="fm-pick-strip predict-cta">
+           <button class="fm-btn-predict" data-match="${m.matchId}">+ Predict</button>
+           ${countdownHTML}
+         </div>`;
   }
 
   return `<div class="fm-card" data-stage="${m.stage}" data-match-id="${m.matchId}">
@@ -665,7 +697,7 @@ async function buildFilteredLeaderboard(matchIds, filter) {
     const p = d.data();
     if (!matchIds.has(p.matchId)) return;
     pts[p.userId]    = (pts[p.userId]    || 0) + (p.pointsAwarded || 0);
-    if (p.pointsAwarded === 20) exact[p.userId]  = (exact[p.userId]  || 0) + 1;
+    if (p.pointsAwarded === 3)  exact[p.userId]  = (exact[p.userId]  || 0) + 1;
     if (p.pointsAwarded === 10) winner[p.userId] = (winner[p.userId] || 0) + 1;
   });
   const sorted = STATE.users.map(u => ({
@@ -743,7 +775,7 @@ function renderMyPredictions() {
     if (!p) return;
     if (!groups[m.matchDay]) groups[m.matchDay] = [];
     groups[m.matchDay].push({ m, p });
-    if (p.pointsAwarded === 20) { totalPts += 20; exact++; }
+    if (p.pointsAwarded === 3)  { totalPts += 3;  exact++; }
     else if (p.pointsAwarded === 10) { totalPts += 10; winner++; }
   });
 
@@ -765,8 +797,8 @@ function renderMyPredictions() {
       <div class="matchday-label">${day}</div>
       ${items.map(({ m, p }) => {
         const pts = p.pointsAwarded;
-        const ptsCls = pts === 20 ? 'exact' : pts === 10 ? 'winner' : pts === 0 ? 'wrong' : 'none';
-        const ptsLabel = pts === 20 ? '+20' : pts === 10 ? '+10' : pts === 0 ? '0' : '–';
+        const ptsCls = pts === 3  ? 'exact' : pts === 10 ? 'winner' : pts === 0 ? 'wrong' : 'none';
+        const ptsLabel = pts === 3  ? '+3'  : pts === 10 ? '+10' : pts === 0 ? '0' : '–';
         const result = m.resultA != null ? `${m.resultA} – ${m.resultB}` : null;
         const fire = p.lastMinute ? ' 🔥' : '';
         return `<div class="pred-fm-card">
@@ -895,7 +927,7 @@ async function saveMatchResult(matchId) {
       const p = d.data();
       const pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
       batch.update(d.ref, { pointsAwarded: pts });
-      total++; if (pts === 20) exact++; if (pts === 10) correct++;
+      total++; if (pts === 3) exact++; if (pts === 10) correct++;
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
@@ -1149,18 +1181,18 @@ function wireEvents() {
   document.querySelectorAll('.numpad-key').forEach(btn =>
     btn.addEventListener('click', () => numpadInput(btn.dataset.digit)));
 
-  // Swipe between home tabs
+  // Swipe between dates
   let touchStartX = 0;
-  const tabs = ['upcoming', 'today', 'completed'];
   document.getElementById('match-list').addEventListener('touchstart', e => {
     touchStartX = e.touches[0].clientX;
   }, { passive: true });
   document.getElementById('match-list').addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - touchStartX;
     if (Math.abs(dx) < 60) return;
-    const cur = tabs.indexOf(activeHomeTab);
-    const next = dx < 0 ? Math.min(cur + 1, tabs.length - 1) : Math.max(cur - 1, 0);
-    if (next !== cur) renderHomeTab(tabs[next]);
+    const dates = [...document.querySelectorAll('.date-pill')].map(b => b.dataset.date);
+    const cur = dates.indexOf(activeDateKey);
+    const next = dx < 0 ? Math.min(cur + 1, dates.length - 1) : Math.max(cur - 1, 0);
+    if (next !== cur) selectDate(dates[next]);
   }, { passive: true });
 
   // Leaderboard
