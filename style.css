@@ -793,10 +793,9 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 /* ── Table ───────────────────────────────────── */
 .lb-table {
   width: 100%;
-  min-width: 340px;
   border-collapse: collapse;
   font-size: 1rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 /* ── Column widths — 7 columns: # | Player | Finished | Played | Exact | Result | Pts */
@@ -810,11 +809,11 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.75rem 0.4rem;
+  letter-spacing: 0.03em;
+  padding: 0.75rem 0.5rem;
   border-bottom: 2px solid var(--border);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 /* ── Table rows — bar style ──────────────────── */
