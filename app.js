@@ -1191,15 +1191,13 @@ function renderAdminMatches() {
   const byDay = {};
   STATE.matches.forEach(m => { if (!byDay[m.matchDay]) byDay[m.matchDay] = []; byDay[m.matchDay].push(m); });
 
-  const apiKeyMissing = typeof FOOTBALL_API_KEY === 'undefined' || !FOOTBALL_API_KEY;
   const fetchBtn = `
-    <div style="margin-bottom:1rem">
-      ${apiKeyMissing
-        ? `<div class="admin-notice">⚠️ Add your <code>FOOTBALL_API_KEY</code> in <code>firebase-config.js</code> to enable auto-fetch.
-           Get a free key at <a href="https://www.football-data.org/client/register" target="_blank">football-data.org</a></div>`
-        : `<button id="fetch-results-btn" class="btn btn-primary" onclick="fetchAllResults()">🔄 Fetch All Results</button>
-           <span style="font-size:0.78rem;color:var(--muted);margin-left:.75rem">Pulls finished scores from football-data.org</span>`
-      }
+    <div style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <a href="https://github.com/kpimdad/Kootharas-WC/actions/workflows/fetch-results.yml"
+         target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:.4rem">
+        🔄 Run Fetch Now
+      </a>
+      <span style="font-size:0.78rem;color:var(--muted)">Auto-runs every hour via GitHub Actions · click to trigger manually</span>
     </div>`;
 
   container.innerHTML = fetchBtn + Object.entries(byDay).map(([day, matches]) => `
@@ -1227,49 +1225,6 @@ function renderAdminMatches() {
         }).join('')}
       </div>
     </div>`).join('');
-}
-
-// ── Auto-fetch results from football-data.org ──────────
-async function fetchAllResults() {
-  if (typeof FOOTBALL_API_KEY === 'undefined' || !FOOTBALL_API_KEY) { showToast('No API key set in firebase-config.js', 'error'); return; }
-  const btn = document.getElementById('fetch-results-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
-
-  try {
-    const key = typeof FOOTBALL_API_KEY !== 'undefined' ? FOOTBALL_API_KEY : '';
-    const res = await fetch(
-      `https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED&token=${key}`
-    );
-    if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
-    const data = await res.json();
-
-    const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
-    let updated = 0;
-
-    for (const apiM of finished) {
-      const rA = apiM.score?.fullTime?.home;
-      const rB = apiM.score?.fullTime?.away;
-      if (rA == null || rB == null) continue;
-
-      // Match to our fixtures by kickoff UTC time (±5 min tolerance)
-      const apiTime = new Date(apiM.utcDate).getTime();
-      const ourMatch = STATE.matches.find(m => Math.abs(new Date(m.kickoffUTC).getTime() - apiTime) < 5 * 60 * 1000);
-      if (!ourMatch) continue;
-
-      // Skip if already saved with same score
-      if (ourMatch.resultA === rA && ourMatch.resultB === rB && ourMatch.status === 'completed') continue;
-
-      await saveMatchResult(ourMatch.matchId, rA, rB);
-      updated++;
-    }
-
-    showToast(updated > 0 ? `✅ ${updated} result${updated > 1 ? 's' : ''} updated` : 'No new results', updated > 0 ? 'success' : 'info');
-    if (updated > 0) renderAdminMatches();
-  } catch (e) {
-    showToast('Fetch failed — ' + e.message, 'error');
-    console.error('fetchAllResults:', e);
-  }
-  if (btn) { btn.disabled = false; btn.textContent = '🔄 Fetch All Results'; }
 }
 
 // ── Save a single match result (manual or auto) ────────
@@ -1697,8 +1652,7 @@ window.addEventListener('appinstalled', () => {
 async function boot() {
   const app = initializeApp(FIREBASE_CONFIG);
   STATE.db  = getFirestore(app);
-  window.saveMatchResult  = saveMatchResult;
-  window.fetchAllResults  = fetchAllResults;
+  window.saveMatchResult = saveMatchResult;
 
   document.getElementById('install-btn').addEventListener('click', async () => {
     if (!_deferredInstallPrompt) return;
