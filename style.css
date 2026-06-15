@@ -1497,7 +1497,7 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   /* ── Topbar ── */
   .topbar { height: 52px; padding: 0 0.75rem; }
   .topbar-brand { font-size: 1rem; }
-  .topbar-user { font-size: 0.82rem; max-width: 70px; }
+  .topbar-user { display: none; }
   .btn-logout { font-size: 0.72rem; padding: 0.3rem 0.55rem; white-space: nowrap; }
   .date-nav-wrap { top: 52px; }
   .view-header { top: 52px; }

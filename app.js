@@ -697,6 +697,7 @@ async function savePrediction() {
   const lastMin  = isLastMinuteWindow(m);
   const existing = STATE.predictions[m.matchId];
 
+  let saved = false;
   try {
     const pred = {
       userId: STATE.session.userId, matchId: m.matchId,
@@ -705,14 +706,15 @@ async function savePrediction() {
     };
     if (!existing) pred.submittedAt = serverTimestamp();
     await setDoc(doc(STATE.db, 'predictions', predId), pred, { merge: true });
+    saved = true; // ← primary write succeeded; never show error toast after this point
 
-    // Track last-minute count — isolated so a failure here never blocks the success toast
+    // Track last-minute count — fire-and-forget, never blocks UI
     if (lastMin && !existing?.lastMinute) {
-      try {
-        const uRef  = doc(STATE.db, 'users', STATE.session.userId);
-        const uSnap = await getDoc(uRef);
-        if (uSnap.exists()) await updateDoc(uRef, { lastMinuteCount: (uSnap.data().lastMinuteCount || 0) + 1 });
-      } catch (e) { console.warn('lastMinuteCount update failed (non-critical):', e); }
+      const uRef = doc(STATE.db, 'users', STATE.session.userId);
+      getDoc(uRef).then(uSnap => {
+        if (uSnap.exists()) updateDoc(uRef, { lastMinuteCount: (uSnap.data().lastMinuteCount || 0) + 1 })
+          .catch(e => console.warn('lastMinuteCount:', e));
+      }).catch(e => console.warn('lastMinuteCount read:', e));
     }
 
     STATE.predictions[m.matchId] = { ...pred, pointsAwarded: existing?.pointsAwarded ?? null };
@@ -720,8 +722,8 @@ async function savePrediction() {
       ? `🔥 Last-minute pick! ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`
       : `Saved: ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`, 'success');
     showView('view-home');
-    renderHomeTab(activeHomeTab);
-  } catch (e) { showToast('Error saving — try again', 'error'); console.error(e); }
+    try { renderHomeTab(activeHomeTab); } catch (re) { console.warn('renderHomeTab after save:', re); }
+  } catch (e) { if (!saved) showToast('Error saving — try again', 'error'); console.error(e); }
   btn.disabled = false; btn.textContent = 'Save Prediction';
 }
 
@@ -943,10 +945,10 @@ function renderLeaderboardTable(users, filter) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-pick">🏆 Champion</th>
-          <th class="lb-th-pick">⚽ Golden Boot</th>
-          <th class="lb-th-num">🎯 Exact</th>
-          <th class="lb-th-num">✓ Result</th>
+          <th class="lb-th-pick">🏆</th>
+          <th class="lb-th-pick">⚽</th>
+          <th class="lb-th-num">🎯</th>
+          <th class="lb-th-num">✓</th>
           <th class="lb-th-pts">Pts</th>
         </tr>
       </thead>
