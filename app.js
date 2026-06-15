@@ -1127,11 +1127,11 @@ async function renderAdminUsers() {
       if (!raw || raw.trim() === current) return;
       const nickname   = raw.trim().charAt(0).toUpperCase() + raw.trim().slice(1).toLowerCase();
       const normalised = nickname.toLowerCase().replace(/\s+/g, '');
-      // Duplicate check
+      // Duplicate check (skip disabled users)
       const existing = await getDocs(collection(STATE.db, 'users'));
       let duplicate = false;
       existing.forEach(d => {
-        if (d.id !== uid && (d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
+        if (d.id !== uid && !d.data().disabled && (d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
       });
       if (duplicate) { showToast(`"${nickname}" already exists`, 'error'); return; }
       await updateDoc(doc(STATE.db, 'users', uid), { nickname });
@@ -1167,11 +1167,11 @@ async function addAdminUser() {
   const nickname   = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
   const normalised = nickname.toLowerCase().replace(/\s+/g, '');
   try {
-    // Duplicate check — case-insensitive, ignores spaces
+    // Duplicate check — case-insensitive, ignores spaces, skips disabled
     const existing = await getDocs(collection(STATE.db, 'users'));
     let duplicate = false;
     existing.forEach(d => {
-      if ((d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
+      if (!d.data().disabled && (d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
     });
     if (duplicate) { showToast(`"${nickname}" already exists`, 'error'); return; }
     await setDoc(doc(collection(STATE.db, 'users')), {
