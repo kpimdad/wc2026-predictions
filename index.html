@@ -246,37 +246,27 @@
       🔒 Predictions are closed for this match
     </div>
 
-    <!-- Score display row — tap a score to edit it -->
-    <div class="score-display-row">
-      <button class="score-display-btn active" id="score-display-a" data-team="a">
-        <span class="score-display-flag" id="picker-flag-a">🏳️</span>
-        <span class="score-display-name" id="picker-name-a">Team A</span>
-        <span class="score-display-num" id="score-a" data-val="0">0</span>
-      </button>
-      <span class="score-display-vs">–</span>
-      <button class="score-display-btn" id="score-display-b" data-team="b">
-        <span class="score-display-flag" id="picker-flag-b">🏳️</span>
-        <span class="score-display-name" id="picker-name-b">Team B</span>
-        <span class="score-display-num" id="score-b" data-val="0">0</span>
-      </button>
-    </div>
-
-    <p class="numpad-hint" id="numpad-hint">Tap a team score to edit it</p>
-
-    <!-- Number pad -->
-    <div class="numpad" id="numpad">
-      <button class="numpad-key" data-digit="1">1</button>
-      <button class="numpad-key" data-digit="2">2</button>
-      <button class="numpad-key" data-digit="3">3</button>
-      <button class="numpad-key" data-digit="4">4</button>
-      <button class="numpad-key" data-digit="5">5</button>
-      <button class="numpad-key" data-digit="6">6</button>
-      <button class="numpad-key" data-digit="7">7</button>
-      <button class="numpad-key" data-digit="8">8</button>
-      <button class="numpad-key" data-digit="9">9</button>
-      <button class="numpad-key numpad-clear" data-digit="clear">⌫</button>
-      <button class="numpad-key" data-digit="0">0</button>
-      <button class="numpad-key numpad-done" data-digit="done">✓</button>
+    <!-- Score steppers -->
+    <div class="stepper-row">
+      <div class="stepper-team">
+        <span class="stepper-flag" id="picker-flag-a">🏳️</span>
+        <span class="stepper-name" id="picker-name-a">Team A</span>
+        <div class="stepper-controls">
+          <button class="stepper-btn stepper-minus" data-team="a" id="stepper-minus-a">−</button>
+          <span class="stepper-num" id="score-a" data-val="0">0</span>
+          <button class="stepper-btn stepper-plus" data-team="a" id="stepper-plus-a">+</button>
+        </div>
+      </div>
+      <span class="stepper-vs">–</span>
+      <div class="stepper-team">
+        <span class="stepper-flag" id="picker-flag-b">🏳️</span>
+        <span class="stepper-name" id="picker-name-b">Team B</span>
+        <div class="stepper-controls">
+          <button class="stepper-btn stepper-minus" data-team="b" id="stepper-minus-b">−</button>
+          <span class="stepper-num" id="score-b" data-val="0">0</span>
+          <button class="stepper-btn stepper-plus" data-team="b" id="stepper-plus-b">+</button>
+        </div>
+      </div>
     </div>
 
     <div class="predict-actions">

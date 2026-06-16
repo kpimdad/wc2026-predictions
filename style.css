@@ -660,103 +660,76 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 
 .predict-body { padding: 1rem; }
 
-/* Score display row — two team panels side by side */
-.score-display-row {
+/* Score steppers */
+.stepper-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
-.score-display-btn {
+.stepper-team {
   flex: 1;
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
-  -webkit-tap-highlight-color: transparent;
+  gap: 0.5rem;
 }
-.score-display-btn.active {
-  border-color: var(--gold);
-  background: rgba(240,180,41,0.08);
-}
-.score-display-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.score-display-flag { font-size: 2rem; line-height: 1; }
-.score-display-name {
-  font-size: 0.72rem;
+.stepper-flag { font-size: 2.4rem; line-height: 1; }
+.stepper-name {
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--silver);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   text-align: center;
-  line-height: 1.2;
-  max-width: 100px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 110px;
 }
-.score-display-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 3.5rem;
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+.stepper-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: rgba(240,180,41,0.1);
   color: var(--gold);
+  font-size: 1.6rem;
+  font-weight: 700;
   line-height: 1;
-}
-.score-display-btn.active .score-display-num { color: #f5c842; }
-.score-display-vs {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.8rem;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.numpad-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--gold);
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.04em;
-}
-
-/* Number pad */
-.numpad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-.numpad-key {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
   cursor: pointer;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.8rem;
-  letter-spacing: 0.04em;
-  padding: 0.9rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--transition);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
 }
-.numpad-key:active { transform: scale(0.93); background: var(--card2); }
-.numpad-key:disabled { opacity: 0.3; cursor: not-allowed; }
-.numpad-clear {
-  background: rgba(192,57,43,0.12);
-  border-color: rgba(192,57,43,0.3);
-  color: #e74c3c;
-  font-size: 1.4rem;
+.stepper-btn:active { transform: scale(0.9); background: rgba(240,180,41,0.25); }
+.stepper-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.stepper-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4rem;
+  color: var(--gold);
+  line-height: 1;
+  min-width: 2.5rem;
+  text-align: center;
 }
-.numpad-done {
-  background: rgba(26,107,60,0.2);
-  border-color: var(--grass);
-  color: #4cd085;
-  font-size: 1.6rem;
+.stepper-vs {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 0.6rem;
 }
 
 .predict-locked {
@@ -1616,19 +1589,16 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .lb-drawer-pick { font-size: 0.82rem; }
   .lb-drawer-lbl  { font-size: 0.6rem; }
 
-  /* ── Numpad — compact so full screen fits without scrolling ── */
-  .numpad-key  { font-size: 1.4rem; padding: 0.6rem 0; }
-  .score-display-num { font-size: 2.8rem; }
-  .score-display-btn { padding: 0.65rem 0.5rem; }
-  .score-display-flag { font-size: 1.6rem; }
-  .numpad      { gap: 0.35rem; margin-bottom: 0.75rem; }
-  .numpad-hint { font-size: 0.7rem; margin-bottom: 0.5rem; }
+  /* ── Steppers — compact on small screens ── */
+  .stepper-btn  { width: 44px; height: 44px; font-size: 1.4rem; }
+  .stepper-num  { font-size: 3.2rem; }
+  .stepper-flag { font-size: 2rem; }
+  .stepper-name { font-size: 0.65rem; }
+  .stepper-row  { gap: 0.5rem; margin-bottom: 1.25rem; }
   .predict-body { padding: 0.65rem; }
   .predict-header { padding: 0.75rem 0.85rem; }
   .predict-meta { font-size: 0.68rem; }
   .predict-teams { font-size: 1.4rem; }
-  .score-display-name { font-size: 0.65rem; }
-  .score-display-row { gap: 0.35rem; margin-bottom: 0.5rem; }
 }
 
 /* ════════════════════════════════════════
@@ -1638,7 +1608,7 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .predict-body { max-width: 420px; margin: 0 auto; }
   .login-title { font-size: 4rem; }
   .login-card { max-width: 480px; }
-  .numpad { max-width: 320px; margin-left: auto; margin-right: auto; }
+  .stepper-row { max-width: 420px; margin-left: auto; margin-right: auto; }
 }
 
 @media (min-width: 960px) {
