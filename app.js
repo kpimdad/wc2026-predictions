@@ -490,6 +490,8 @@ function selectDate(dateKey) {
   renderDeadlineBanner();
 }
 
+function renderHomeTab() { selectDate(activeDateKey); }
+
 function isToday(iso) {
   const d = new Date(iso), t = new Date();
   return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
