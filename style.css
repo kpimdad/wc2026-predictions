@@ -665,20 +665,22 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 0.5rem;
+  margin: 1.5rem auto 2.5rem;
+  max-width: 400px;
+  padding: 0 1rem;
 }
 .stepper-team {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
-.stepper-flag { font-size: 2.4rem; line-height: 1; }
+.stepper-flag { font-size: 3rem; line-height: 1; }
 .stepper-name {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--silver);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -686,22 +688,23 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 110px;
+  max-width: 130px;
 }
 .stepper-controls {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  gap: 1rem;
   margin-top: 0.25rem;
 }
 .stepper-btn {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  border: 2px solid var(--gold);
-  background: rgba(240,180,41,0.1);
+  border: 2.5px solid var(--gold);
+  background: rgba(240,180,41,0.12);
   color: var(--gold);
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -713,23 +716,23 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   touch-action: manipulation;
   user-select: none;
 }
-.stepper-btn:active { transform: scale(0.9); background: rgba(240,180,41,0.25); }
+.stepper-btn:active { transform: scale(0.88); background: rgba(240,180,41,0.3); }
 .stepper-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 .stepper-num {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 4rem;
+  font-size: 5.5rem;
   color: var(--gold);
   line-height: 1;
-  min-width: 2.5rem;
+  min-width: 3rem;
   text-align: center;
 }
 .stepper-vs {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 2rem;
+  font-size: 2.2rem;
   color: var(--muted);
   flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 0.6rem;
+  align-self: center;
+  padding-top: 3rem;
 }
 
 .predict-locked {
@@ -1590,11 +1593,11 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .lb-drawer-lbl  { font-size: 0.6rem; }
 
   /* ── Steppers — compact on small screens ── */
-  .stepper-btn  { width: 44px; height: 44px; font-size: 1.4rem; }
-  .stepper-num  { font-size: 3.2rem; }
-  .stepper-flag { font-size: 2rem; }
-  .stepper-name { font-size: 0.65rem; }
-  .stepper-row  { gap: 0.5rem; margin-bottom: 1.25rem; }
+  .stepper-btn  { width: 58px; height: 58px; font-size: 1.8rem; }
+  .stepper-num  { font-size: 4.5rem; }
+  .stepper-flag { font-size: 2.6rem; }
+  .stepper-name { font-size: 0.72rem; }
+  .stepper-row  { gap: 0.4rem; margin-bottom: 1.5rem; }
   .predict-body { padding: 0.65rem; }
   .predict-header { padding: 0.75rem 0.85rem; }
   .predict-meta { font-size: 0.68rem; }
