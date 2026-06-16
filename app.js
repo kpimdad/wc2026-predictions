@@ -99,6 +99,14 @@ function showView(id) {
 }
 
 // ── Time Helpers ───────────────────────────────────────
+function matchMetaLabel(m) {
+  if (m.stage === 'Group') {
+    const md = m.matchDay.match(/MD(\d+)/)?.[1] || '1';
+    return `Group ${m.group} · Match Day ${md}`;
+  }
+  return m.matchDay;
+}
+
 function formatKickoff(isoString) {
   return new Date(isoString).toLocaleString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
@@ -610,7 +618,7 @@ async function openPredictView(matchId) {
   const pred   = STATE.predictions[matchId];
   const locked = isLocked(m) || m.status === 'locked' || m.status === 'completed';
 
-  document.getElementById('predict-meta').textContent    = `${m.matchDay} · ${formatKickoff(m.kickoffUTC)} · ${m.venue}`;
+  document.getElementById('predict-meta').textContent    = `${matchMetaLabel(m)} · ${formatKickoff(m.kickoffUTC)} · ${m.venue}`;
   document.getElementById('predict-flag-a').textContent  = getFlag(m.teamA, m.flagA);
   document.getElementById('predict-flag-b').textContent  = getFlag(m.teamB, m.flagB);
   document.getElementById('predict-team-a').textContent  = m.teamA;

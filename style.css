@@ -658,7 +658,7 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   margin-top: 0.25rem;
 }
 
-.predict-body { padding: 1rem; }
+.predict-body { padding: 1rem; max-width: 420px; margin: 0 auto; }
 
 /* Score steppers — vertical */
 .stepper-row {
@@ -1599,10 +1599,8 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
    DESKTOP RESPONSIVE (≥600px)
    ════════════════════════════════════════ */
 @media (min-width: 600px) {
-  .predict-body { max-width: 420px; margin: 0 auto; }
   .login-title { font-size: 4rem; }
   .login-card { max-width: 480px; }
-  .stepper-row { max-width: 420px; margin-left: auto; margin-right: auto; }
 }
 
 @media (min-width: 960px) {
