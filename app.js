@@ -916,12 +916,12 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
           <span class="lb-name-text">${u.nickname}${isMe ? '<span class="me-tag">YOU</span>' : ''}</span>
         </div>
       </td>
+      <td class="lb-td-compare">${!isMe ? `<button class="lb-inline-compare" data-uid="${u.id}" data-nickname="${u.nickname}">⇄</button>` : ''}</td>
       <td class="lb-td-num lb-td-total">${totalCompleted}</td>
       <td class="lb-td-num lb-td-played">${played}</td>
       <td class="lb-td-num lb-td-exact">${exact}</td>
       <td class="lb-td-num lb-td-result">${winner}</td>
       <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
-      <td class="lb-td-compare">${!isMe ? `<button class="lb-inline-compare" data-uid="${u.id}" data-nickname="${u.nickname}">⇄</button>` : ''}</td>
     </tr>`;
 
     // Expandable drawer — shows champion/golden boot picks
@@ -949,12 +949,12 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
+          <th class="lb-th-compare"></th>
           <th class="lb-th-num">Matches Finished</th>
           <th class="lb-th-num">Matches Played</th>
           <th class="lb-th-num">Exact Score</th>
           <th class="lb-th-num">Correct Result</th>
           <th class="lb-th-pts">Points</th>
-          <th class="lb-th-compare"></th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
