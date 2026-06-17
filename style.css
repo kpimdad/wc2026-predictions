@@ -895,6 +895,24 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 }
 .lb-drawer-compare:active { background: rgba(255,255,255,0.12); }
 
+.lb-inline-compare {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
+  color: var(--silver);
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.4rem;
+  transition: background 0.15s;
+}
+.lb-inline-compare:active { background: rgba(255,255,255,0.18); }
+
 /* ── Number cells (Total / Played / Exact / Result) */
 .lb-td-num {
   text-align: center;

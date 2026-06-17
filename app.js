@@ -914,6 +914,7 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
         <div class="lb-player-wrap">
           ${getAvatarHTML(u, 32)}
           <span class="lb-name-text">${u.nickname}${isMe ? '<span class="me-tag">YOU</span>' : ''}</span>
+          ${!isMe ? `<button class="lb-inline-compare" data-uid="${u.id}" data-nickname="${u.nickname}" title="Compare">⇄</button>` : ''}
         </div>
       </td>
       <td class="lb-td-num lb-td-total">${totalCompleted}</td>
@@ -980,8 +981,8 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     });
   });
 
-  // Compare button inside drawer
-  document.querySelectorAll('.lb-drawer-compare').forEach(btn => {
+  // Compare buttons (drawer + inline)
+  document.querySelectorAll('.lb-drawer-compare, .lb-inline-compare').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       openCompareModal(btn.dataset.uid, btn.dataset.nickname);
