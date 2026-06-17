@@ -40,20 +40,36 @@ const STATE = {
 // ── Rank movement helpers ──────────────────────────────
 function loadPrevRanks() {
   try {
-    const data = JSON.parse(localStorage.getItem('wc2026_prevRanks')) || {};
-    const { _savedAt, ...ranks } = data;
-    return ranks;
+    const data = JSON.parse(localStorage.getItem('wc2026_rankData') || '{}');
+    return data.prevRanks || {};
   } catch { return {}; }
 }
-function saveRankSnapshot(rankedUsers) {
-  // Refresh snapshot at most once every 24 hours so arrows persist across page reloads
+function saveRankSnapshot(rankedUsers, currentMatchCount) {
+  // Two-slot approach:
+  //   prevRanks    = ranks before the latest result batch (used for arrows display)
+  //   currentRanks = ranks as of last render (promoted to prevRanks on next new result)
+  // This means arrows persist through refreshes and reset when new results arrive.
   try {
-    const existing = JSON.parse(localStorage.getItem('wc2026_prevRanks') || '{}');
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    if (existing._savedAt && (Date.now() - existing._savedAt) < ONE_DAY) return;
-    const snap = { _savedAt: Date.now() };
-    rankedUsers.forEach((u, i) => { snap[u.id] = i + 1; });
-    localStorage.setItem('wc2026_prevRanks', JSON.stringify(snap));
+    const stored = JSON.parse(localStorage.getItem('wc2026_rankData') || '{}');
+    const prevMatchCount = stored.prevMatchCount || 0;
+    const newCurrentRanks = {};
+    rankedUsers.forEach((u, i) => { newCurrentRanks[u.id] = i + 1; });
+
+    if (currentMatchCount > prevMatchCount) {
+      // New result(s) — promote current → prev, record fresh current
+      localStorage.setItem('wc2026_rankData', JSON.stringify({
+        prevRanks:      stored.currentRanks || {},
+        currentRanks:   newCurrentRanks,
+        prevMatchCount: currentMatchCount,
+      }));
+    } else {
+      // No new results — keep prevRanks intact so arrows survive refreshes
+      localStorage.setItem('wc2026_rankData', JSON.stringify({
+        prevRanks:      stored.prevRanks || {},
+        currentRanks:   newCurrentRanks,
+        prevMatchCount,
+      }));
+    }
   } catch {}
 }
 
@@ -971,7 +987,10 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`;
 
   // Save rank snapshot for next visit (overall only)
-  if (!filter) saveRankSnapshot(users);
+  if (!filter) {
+    const completedCount = STATE.matches.filter(m => m.resultA !== null).length;
+    saveRankSnapshot(users, completedCount);
+  }
 
   // Row tap → toggle expand drawer
   document.querySelectorAll('.lb-tr').forEach(row => {
