@@ -1349,9 +1349,9 @@ async function saveAllBackdatePredictions() {
   const userId = document.getElementById('backdate-user-select').value;
   if (!userId) return;
 
-  // Collect all rows that have both scores filled
+  // Collect only rows the user has edited (dirty)
   const rowData = {};
-  document.querySelectorAll('.bd-score-input').forEach(inp => {
+  document.querySelectorAll('.bd-row.bd-row-dirty .bd-score-input').forEach(inp => {
     const matchId = inp.dataset.matchId;
     const field   = inp.dataset.field;
     const val     = inp.value.trim();
