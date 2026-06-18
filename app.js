@@ -348,7 +348,15 @@ async function handleAdminLogin() {
   } catch (e) { err.textContent = 'Error: ' + e.message; err.style.display = 'block'; }
 }
 
+const REGISTRATION_OPEN = false;
+
 async function handleRegister() {
+  if (!REGISTRATION_OPEN) {
+    const errEl = document.getElementById('register-error');
+    errEl.textContent = 'Registration is closed — all spots are filled! To request access, contact the admin on WhatsApp.';
+    errEl.classList.add('show');
+    return;
+  }
   const raw      = document.getElementById('reg-nickname').value.trim();
   const pin      = document.getElementById('reg-pin').value.trim();
   const confirm  = document.getElementById('reg-pin-confirm').value.trim();
@@ -1588,6 +1596,10 @@ function wireEvents() {
 
   // Register toggle
   document.getElementById('show-register-btn').addEventListener('click', () => {
+    if (!REGISTRATION_OPEN) {
+      showToast('Registration is closed — all spots are filled! To request access, contact the admin on WhatsApp.', 'info');
+      return;
+    }
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('register-form').style.display = 'block';
   });
