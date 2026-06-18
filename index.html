@@ -280,9 +280,12 @@
     <div>
       <h2 class="view-title">Leaderboard</h2>
     </div>
-    <select id="leaderboard-filter" class="filter-select">
-      <option value="overall">Overall</option>
-    </select>
+    <div style="display:flex;gap:0.5rem;align-items:center">
+      <select id="leaderboard-filter" class="filter-select">
+        <option value="overall">Overall</option>
+      </select>
+      <button id="share-standings-btn" title="Share Standings" style="background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--silver);border-radius:8px;padding:0.45rem 0.7rem;font-size:1.1rem;cursor:pointer;line-height:1">📤</button>
+    </div>
   </div>
 
   <div id="leaderboard-body" class="lb-list">
@@ -453,6 +456,23 @@
 </div>
 
 <!-- ════════════════════════════════════════
+     SHARE CARD (off-screen, rendered by html2canvas)
+     ════════════════════════════════════════ -->
+<div id="share-card" style="position:fixed;left:-9999px;top:0;width:360px;background:#0d1117;padding:20px;font-family:'Bebas Neue',sans-serif;border-radius:16px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <span style="font-size:2rem">🏆</span>
+    <div>
+      <div id="sc-title" style="color:#F0B429;font-size:1.6rem;line-height:1">KOOTHARAS WC 2026</div>
+      <div id="sc-date" style="color:#8899aa;font-size:0.75rem;font-family:sans-serif;margin-top:2px"></div>
+    </div>
+  </div>
+  <div id="sc-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+  <div style="margin-top:14px;font-size:0.65rem;color:#556;font-family:sans-serif;text-align:center;border-top:1px solid #1e2a38;padding-top:10px">
+    kpimdad.github.io/Kootharas-WC
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
      CHAMPION / GOLDEN BOOT MODAL
      ════════════════════════════════════════ -->
 <div id="champion-modal" class="modal-overlay" style="display:none">
@@ -543,6 +563,7 @@
      SCRIPTS
      ════════════════════════════════════════ -->
 <!-- Match data must load before app.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="matches.js"></script>
 <script src="firebase-config.js"></script>
 
@@ -550,7 +571,7 @@
 <script>
   function loadApp() {
     const s = document.createElement('script');
-    s.src = 'app.js?v=12';
+    s.src = 'app.js?v=13';
     document.body.appendChild(s);
   }
   if (window.firebaseReady) {

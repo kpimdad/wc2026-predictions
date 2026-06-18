@@ -1519,6 +1519,69 @@ async function rescoreAllMatches() {
   } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
+// ── Share Standings Card ───────────────────────────────
+async function shareStandings() {
+  const btn = document.getElementById('share-standings-btn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+
+  try {
+    // Populate the off-screen share card from current STATE
+    const rankedUsers = [...STATE.users]
+      .filter(u => !u.isAdminAccount)
+      .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+
+    const medals = ['🥇','🥈','🥉'];
+    const rowsEl = document.getElementById('sc-rows');
+    document.getElementById('sc-date').textContent =
+      new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+
+    rowsEl.innerHTML = rankedUsers.map((u, i) => {
+      const rank   = i + 1;
+      const medal  = medals[i] || `${rank}.`;
+      const pts    = u.totalPoints || 0;
+      const isMe   = u.id === STATE.session?.userId;
+      const bg     = isMe ? 'rgba(240,180,41,0.12)' : (i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${bg}">
+        <span style="font-size:1.1rem;width:28px;text-align:center">${medal}</span>
+        <span style="flex:1;font-size:1rem;color:${isMe ? '#F0B429' : '#ccd6f6'};font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em">${u.nickname}${isMe ? ' ★' : ''}</span>
+        <span style="font-size:1.1rem;color:${isMe ? '#F0B429' : '#fff'};font-family:'Bebas Neue',sans-serif">${pts} <span style="font-size:0.7rem;color:#8899aa;font-family:sans-serif">pts</span></span>
+      </div>`;
+    }).join('');
+
+    // Render card to canvas
+    const card = document.getElementById('share-card');
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0d1117',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    canvas.toBlob(async blob => {
+      const file = new File([blob], 'kootharas-wc-standings.png', { type: 'image/png' });
+
+      // Try native share (mobile) first
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Kootharas WC 2026 Standings' });
+      } else {
+        // Fallback: download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'kootharas-standings.png'; a.click();
+        URL.revokeObjectURL(url);
+      }
+    }, 'image/png');
+
+  } catch (e) {
+    console.error('Share failed:', e);
+    showToast('Could not generate share image', 'error');
+  } finally {
+    btn.textContent = '📤';
+    btn.disabled = false;
+  }
+}
+
 // ── Prediction Integrity Audit ─────────────────────────
 // Checks for predictions where updatedAt > lock time (kickoff − 5 min)
 // and backdated !== true. These were not saved through the admin tool.
@@ -1767,6 +1830,7 @@ function wireEvents() {
   document.getElementById('recalc-all-btn').addEventListener('click', recalcAll);
   document.getElementById('rescore-all-btn').addEventListener('click', rescoreAllMatches);
   document.getElementById('run-audit-btn').addEventListener('click', runIntegrityAudit);
+  document.getElementById('share-standings-btn').addEventListener('click', shareStandings);
 
   // Champion modal
   const closeModal = () => { document.getElementById('champion-modal').style.display = 'none'; };
