@@ -773,8 +773,18 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 .lb-th-rank    { width: 52px; text-align: center; }
 .lb-th-player  { text-align: left; }
 .lb-th-compare { width: 48px; text-align: center; }
-.lb-th-num     { width: 84px; text-align: center; white-space: nowrap; }
-.lb-th-pts     { width: 60px; text-align: center; white-space: nowrap; }
+.lb-th-num     { width: 52px; text-align: center; white-space: nowrap; }
+.lb-th-pts     { width: 52px; text-align: center; white-space: nowrap; }
+
+.lb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
 
 .lb-table th {
   background: var(--card2);
