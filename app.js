@@ -1452,18 +1452,20 @@ async function recalcAll() {
   showToast('Rebuilding…', 'info');
   try {
     const uSnap = await getDocs(collection(STATE.db, 'users'));
+    const validUids = new Set();
     const totals = {};
-    uSnap.forEach(d => { totals[d.id] = 0; });
+    uSnap.forEach(d => { validUids.add(d.id); totals[d.id] = 0; });
     const pSnap = await getDocs(collection(STATE.db, 'predictions'));
     pSnap.forEach(d => {
       const p = d.data();
-      if (p.pointsAwarded != null) totals[p.userId] = (totals[p.userId] || 0) + p.pointsAwarded;
+      if (p.pointsAwarded != null && validUids.has(p.userId))
+        totals[p.userId] = (totals[p.userId] || 0) + p.pointsAwarded;
     });
     const batch = writeBatch(STATE.db);
     Object.entries(totals).forEach(([uid, pts]) => batch.update(doc(STATE.db, 'users', uid), { totalPoints: pts }));
     await batch.commit();
     showToast('All totals rebuilt!', 'success');
-  } catch (e) { showToast('Error rebuilding totals', 'error'); console.error(e); }
+  } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
 // Re-score every prediction for every completed match, then rebuild totals.
@@ -1490,12 +1492,14 @@ async function rescoreAllMatches() {
 
     // Now rebuild all user totals from the freshly-scored pointsAwarded values
     const uSnap = await getDocs(collection(STATE.db, 'users'));
+    const validUids = new Set();
     const totals = {};
-    uSnap.forEach(d => { totals[d.id] = 0; });
+    uSnap.forEach(d => { validUids.add(d.id); totals[d.id] = 0; });
     const allPreds = await getDocs(collection(STATE.db, 'predictions'));
     allPreds.forEach(d => {
       const p = d.data();
-      if (p.pointsAwarded != null) totals[p.userId] = (totals[p.userId] || 0) + p.pointsAwarded;
+      if (p.pointsAwarded != null && validUids.has(p.userId))
+        totals[p.userId] = (totals[p.userId] || 0) + p.pointsAwarded;
     });
     const uBatch = writeBatch(STATE.db);
     Object.entries(totals).forEach(([uid, pts]) => uBatch.update(doc(STATE.db, 'users', uid), { totalPoints: pts }));
