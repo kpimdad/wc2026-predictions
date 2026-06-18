@@ -58,17 +58,21 @@ function fetchAPI(path) {
 async function main() {
   console.log(`[${new Date().toISOString()}] Starting WC result sync…`);
 
+  // Only fetch today's matches (UTC). This keeps reads/writes minimal — no
+  // point re-checking all historical results every run.
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  console.log(`Fetching results for date: ${today}`);
+
   let data;
   try {
-    data = await fetchAPI('/v4/competitions/WC/matches?status=FINISHED');
+    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`);
   } catch (e) {
-    // Try with season param if default fails
-    console.warn('First attempt failed, retrying with season=2026…', e.message);
-    data = await fetchAPI('/v4/competitions/WC/matches?status=FINISHED&season=2026');
+    console.warn('Date-filtered fetch failed, retrying with season param…', e.message);
+    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&season=2026&dateFrom=${today}&dateTo=${today}`);
   }
 
   const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
-  console.log(`Found ${finished.length} finished match(es) from API`);
+  console.log(`Found ${finished.length} finished match(es) from API for ${today}`);
 
   let updated = 0;
 
@@ -108,13 +112,16 @@ async function main() {
     const predBatch = db.batch();
     const deltas = {};
 
+    let skipped = 0;
     predsSnap.forEach(doc => {
       const p    = doc.data();
       const pts  = calculatePoints(p.predictedA, p.predictedB, rA, rB);
-      const prev = p.pointsAwarded ?? 0;
+      const prev = p.pointsAwarded ?? null;
+      if (prev === pts) { skipped++; return; }  // already correct — skip write
       predBatch.update(doc.ref, { pointsAwarded: pts });
-      deltas[p.userId] = (deltas[p.userId] || 0) + (pts - prev);
+      deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (prev ?? 0));
     });
+    if (skipped > 0) console.log(`    (skipped ${skipped} predictions already at correct score)`);
 
     await predBatch.commit();
 
