@@ -956,9 +956,6 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     </tr>`;
 
     // Expandable drawer — shows champion/golden boot picks
-    const compareBtn = !isMe
-      ? `<button class="lb-drawer-compare" data-uid="${u.id}" data-nickname="${u.nickname}">Compare ↗</button>`
-      : '';
     const drawerRow = `<tr class="lb-tr-drawer" data-uid="${u.id}">
       <td colspan="8">
         <div class="lb-drawer">
@@ -966,7 +963,6 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner</span>${champ}</span>
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">⚽ Top Scorer</span>${boot}</span>
           </div>
-          ${compareBtn}
         </div>
       </td>
     </tr>`;
