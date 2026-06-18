@@ -1594,15 +1594,7 @@ function wireEvents() {
     document.getElementById('pin-toggle').textContent = pin.type === 'password' ? '👁' : '🙈';
   });
 
-  // Register toggle
-  document.getElementById('show-register-btn').addEventListener('click', () => {
-    if (!REGISTRATION_OPEN) {
-      showToast('Registration is closed — all spots are filled! To request access, contact the admin on WhatsApp.', 'info');
-      return;
-    }
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('register-form').style.display = 'block';
-  });
+  // Register toggle (removed — registration is closed)
   document.getElementById('show-login-btn').addEventListener('click', () => {
     document.getElementById('register-form').style.display = 'none';
     document.getElementById('login-form').style.display = 'block';
