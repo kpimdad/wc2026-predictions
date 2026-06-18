@@ -1540,9 +1540,9 @@ async function shareStandings() {
     rowsEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px;margin-bottom:2px">
       <span style="width:28px"></span>
       <span style="flex:1"></span>
-      <span style="width:32px;text-align:center;font-size:0.65rem;color:#556;font-family:sans-serif">🎯</span>
-      <span style="width:32px;text-align:center;font-size:0.65rem;color:#556;font-family:sans-serif">✅</span>
-      <span style="width:52px;text-align:right;font-size:0.65rem;color:#556;font-family:sans-serif">PTS</span>
+      <span style="width:32px;text-align:center;font-size:0.65rem;color:#778;font-family:sans-serif">🎯</span>
+      <span style="width:32px;text-align:center;font-size:0.65rem;color:#778;font-family:sans-serif">✅</span>
+      <span style="width:62px;text-align:right;font-size:0.65rem;color:#778;font-family:sans-serif;letter-spacing:0.05em">POINTS</span>
     </div>` + rankedUsers.map((u, i) => {
       const rank   = i + 1;
       const medal  = medals[i] || `${rank}.`;
@@ -1558,7 +1558,7 @@ async function shareStandings() {
         <span style="flex:1;font-size:0.95rem;color:${nameColor};font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.nickname}${isMe ? ' ★' : ''}</span>
         <span style="width:32px;text-align:center;font-size:0.9rem;color:#f1c40f;font-family:'Bebas Neue',sans-serif">${exact}</span>
         <span style="width:32px;text-align:center;font-size:0.9rem;color:#2ecc71;font-family:'Bebas Neue',sans-serif">${winner}</span>
-        <span style="width:52px;text-align:right;font-size:1.05rem;color:${ptsColor};font-family:'Bebas Neue',sans-serif">${pts}<span style="font-size:0.6rem;color:#8899aa;font-family:sans-serif"> pts</span></span>
+        <span style="width:62px;text-align:right;font-size:1.05rem;color:${ptsColor};font-family:'Bebas Neue',sans-serif">${pts}<span style="font-size:0.6rem;color:#8899aa;font-family:sans-serif"> Points</span></span>
       </div>`;
     }).join('');
 
@@ -1568,7 +1568,9 @@ async function shareStandings() {
       backgroundColor: '#0d1117',
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       logging: false,
+      imageTimeout: 5000,
     });
 
     canvas.toBlob(async blob => {
