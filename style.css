@@ -1722,22 +1722,23 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .view-title { font-size: 1.4rem; }
 
   /* ── Leaderboard mobile: all 5 stat cols same width, no horizontal scroll ── */
+  /* Layout on 375px: 30(rank) + player(flex) + 30(compare) + 44×5(stats) = 375px */
   .lb-table { width: 100%; min-width: unset; table-layout: fixed; }
   .lb-th-rank    { width: 30px; }
-  .lb-th-player  { /* flexible — takes remaining space */ }
+  .lb-th-player  { /* flexible */ }
   .lb-th-compare { width: 30px; padding: 0.6rem 0.1rem; }
-  /* All 5 stat cols identical */
+  /* All 5 stat cols identical — 44px each */
   .lb-th-num,
-  .lb-th-pts     { width: 38px; font-size: 0.68rem; padding: 0.6rem 0.1rem; }
-  .lb-td-rank    { padding: 0.5rem 0.1rem 0.5rem 0.2rem; }
-  .lb-td-player  { padding: 0.5rem 0.2rem; overflow: hidden; }
-  .lb-td-compare { padding: 0.4rem 0.1rem; }
+  .lb-th-pts     { width: 44px; font-size: 0.68rem; padding: 0.6rem 0.1rem; }
+  .lb-td-rank    { padding: 0.4rem 0.1rem 0.4rem 0.2rem; }
+  .lb-td-player  { padding: 0.4rem 0.2rem; overflow: hidden; }
+  .lb-td-compare { padding: 0.35rem 0.1rem; }
   .lb-player-wrap { gap: 0.2rem; }
-  .lb-name-text  { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
-  .lb-td-num     { font-size: 0.88rem; padding: 0.5rem 0.1rem; }
-  .lb-td-pts     { padding: 0.5rem 0.1rem; }
-  .lb-pts        { font-size: 1.3rem; }
-  .lb-rank-num   { font-size: 1.1rem; }
+  .lb-name-text  { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px; }
+  .lb-td-num     { font-size: 0.88rem; padding: 0.4rem 0.1rem; }
+  .lb-td-pts     { padding: 0.35rem 0.1rem; }
+  .lb-pts        { font-size: 1.1rem; }
+  .lb-rank-num   { font-size: 1.0rem; }
   .lb-rank-move  { font-size: 0.55rem; }
   .lb-inline-compare { width: 26px; height: 26px; font-size: 0.85rem; }
   .lb-drawer { padding: 0.65rem 0.75rem; gap: 0.6rem; }
