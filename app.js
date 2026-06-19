@@ -244,7 +244,12 @@ async function fetchUsers() {
   snap.forEach(d => {
     if (!d.data().disabled && !d.data().isAdminAccount) STATE.users.push({ id: d.id, ...d.data() });
   });
-  STATE.users.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+  STATE.users.sort((a, b) => {
+    if ((b.totalPoints     || 0) !== (a.totalPoints     || 0)) return (b.totalPoints     || 0) - (a.totalPoints     || 0);
+    if ((b.computedExact   || 0) !== (a.computedExact   || 0)) return (b.computedExact   || 0) - (a.computedExact   || 0);
+    if ((b.computedWinner  || 0) !== (a.computedWinner  || 0)) return (b.computedWinner  || 0) - (a.computedWinner  || 0);
+    return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0); // fewer played = better
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1586,7 +1591,12 @@ async function shareStandings() {
   try {
     const rankedUsers = [...STATE.users]
       .filter(u => !u.isAdminAccount)
-      .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+      .sort((a, b) => {
+        if ((b.totalPoints     || 0) !== (a.totalPoints     || 0)) return (b.totalPoints     || 0) - (a.totalPoints     || 0);
+        if ((b.computedExact   || 0) !== (a.computedExact   || 0)) return (b.computedExact   || 0) - (a.computedExact   || 0);
+        if ((b.computedWinner  || 0) !== (a.computedWinner  || 0)) return (b.computedWinner  || 0) - (a.computedWinner  || 0);
+        return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0);
+      });
 
     // ── Layout (logical pixels — canvas is 2× for HD) ──
     const DPR    = 2;
