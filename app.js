@@ -1519,70 +1519,147 @@ async function rescoreAllMatches() {
   } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
-// ── Share Standings Card ───────────────────────────────
+// ── Share Standings Card (pure Canvas 2D — no html2canvas) ────────────────
 async function shareStandings() {
   const btn = document.getElementById('share-standings-btn');
   btn.textContent = '⏳';
   btn.disabled = true;
 
   try {
-    // Populate the off-screen share card from current STATE
     const rankedUsers = [...STATE.users]
       .filter(u => !u.isAdminAccount)
       .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
 
     const medals = ['🥇','🥈','🥉'];
-    const rowsEl = document.getElementById('sc-rows');
-    document.getElementById('sc-date').textContent =
-      new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const PAD    = 28;   // horizontal padding
+    const W      = 760;  // canvas width (2× for retina)
+    const ROW_H  = 52;
+    const HEADER = 200;  // space for title block
+    const FOOTER = 48;
+    const H      = HEADER + rankedUsers.length * ROW_H + 24 + FOOTER;
 
-    // Column headers
-    rowsEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px;margin-bottom:2px">
-      <span style="width:28px"></span>
-      <span style="flex:1"></span>
-      <span style="width:32px;text-align:center;font-size:0.65rem;color:#778;font-family:sans-serif">🎯</span>
-      <span style="width:32px;text-align:center;font-size:0.65rem;color:#778;font-family:sans-serif">✅</span>
-      <span style="width:62px;text-align:right;font-size:0.65rem;color:#778;font-family:sans-serif;letter-spacing:0.05em">POINTS</span>
-    </div>` + rankedUsers.map((u, i) => {
-      const rank   = i + 1;
-      const medal  = medals[i] || `${rank}.`;
-      const pts    = u.totalPoints    || 0;
-      const exact  = u.computedExact  || 0;
-      const winner = u.computedWinner || 0;
-      const isMe   = u.id === STATE.session?.userId;
-      const bg     = isMe ? 'rgba(240,180,41,0.12)' : (i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent');
-      const nameColor = isMe ? '#F0B429' : '#ccd6f6';
-      const ptsColor  = isMe ? '#F0B429' : '#ffffff';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${bg}">
-        <span style="font-size:1rem;width:28px;text-align:center">${medal}</span>
-        <span style="flex:1;font-size:0.95rem;color:${nameColor};font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.nickname}${isMe ? ' ★' : ''}</span>
-        <span style="width:32px;text-align:center;font-size:0.9rem;color:#f1c40f;font-family:'Bebas Neue',sans-serif">${exact}</span>
-        <span style="width:32px;text-align:center;font-size:0.9rem;color:#2ecc71;font-family:'Bebas Neue',sans-serif">${winner}</span>
-        <span style="width:62px;text-align:right;font-size:1.05rem;color:${ptsColor};font-family:'Bebas Neue',sans-serif">${pts}<span style="font-size:0.6rem;color:#8899aa;font-family:sans-serif"> Points</span></span>
-      </div>`;
-    }).join('');
+    const canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
 
-    // Render card to canvas
-    const card = document.getElementById('share-card');
-    const canvas = await html2canvas(card, {
-      backgroundColor: '#0d1117',
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      imageTimeout: 5000,
+    // ── 1. Draw background image (object-fit: contain, centered) ──
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = '26.jpg';
+    });
+    // Scale to cover full canvas, center-crop
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const iw = img.naturalWidth  * scale;
+    const ih = img.naturalHeight * scale;
+    const ix = (W - iw) / 2;
+    const iy = (H - ih) / 2;
+    ctx.drawImage(img, ix, iy, iw, ih);
+
+    // ── 2. Dark overlay ──
+    ctx.fillStyle = 'rgba(8,12,18,0.72)';
+    ctx.fillRect(0, 0, W, H);
+
+    // ── 3. Title block (centered) ──
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#F0B429';
+    ctx.font      = 'bold 52px "Bebas Neue", sans-serif';
+    ctx.fillText('🏆  KOOTHARAS WC 2026', W / 2, 90);
+
+    ctx.fillStyle = '#aabbcc';
+    ctx.font      = '26px sans-serif';
+    ctx.fillText(new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }), W / 2, 126);
+
+    // Divider
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, 150); ctx.lineTo(W - PAD, 150);
+    ctx.stroke();
+
+    // ── 4. Column headers ──
+    const COL = { medal: 28, name: 70, exact: W - 240, result: W - 170, pts: W - PAD };
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#667788';
+    ctx.font      = '22px sans-serif';
+    ctx.fillText('🎯', COL.exact - 14,  178);
+    ctx.fillText('✅', COL.result - 14, 178);
+    ctx.textAlign = 'right';
+    ctx.fillText('POINTS', COL.pts, 178);
+
+    // ── 5. Player rows ──
+    rankedUsers.forEach((u, i) => {
+      const y    = HEADER + i * ROW_H;
+      const isMe = u.id === STATE.session?.userId;
+
+      // Row background
+      if (isMe) {
+        ctx.fillStyle = 'rgba(240,180,41,0.15)';
+        ctx.beginPath();
+        ctx.roundRect(PAD - 8, y + 4, W - (PAD - 8) * 2, ROW_H - 6, 8);
+        ctx.fill();
+      } else if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.beginPath();
+        ctx.roundRect(PAD - 8, y + 4, W - (PAD - 8) * 2, ROW_H - 6, 8);
+        ctx.fill();
+      }
+
+      const cy = y + ROW_H - 14; // text baseline
+
+      // Medal / rank
+      ctx.textAlign = 'left';
+      ctx.font      = '28px sans-serif';
+      ctx.fillText(medals[i] || `${i + 1}.`, PAD, cy);
+
+      // Name
+      ctx.font      = `bold 32px "Bebas Neue", sans-serif`;
+      ctx.fillStyle = isMe ? '#F0B429' : '#ccd6f6';
+      const name    = (u.nickname + (isMe ? ' ★' : '')).slice(0, 18);
+      ctx.fillText(name, COL.name, cy);
+
+      // Exact
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f1c40f';
+      ctx.font      = 'bold 30px "Bebas Neue", sans-serif';
+      ctx.fillText(u.computedExact || 0, COL.exact, cy);
+
+      // Result
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillText(u.computedWinner || 0, COL.result, cy);
+
+      // Points
+      ctx.textAlign = 'right';
+      ctx.fillStyle = isMe ? '#F0B429' : '#ffffff';
+      ctx.font      = 'bold 32px "Bebas Neue", sans-serif';
+      ctx.fillText(u.totalPoints || 0, COL.pts - 70, cy);
+      ctx.fillStyle = '#8899aa';
+      ctx.font      = '22px sans-serif';
+      ctx.fillText('pts', COL.pts, cy);
     });
 
+    // ── 6. Footer ──
+    const fy = H - 16;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, fy - 24); ctx.lineTo(W - PAD, fy - 24);
+    ctx.stroke();
+    ctx.textAlign  = 'center';
+    ctx.fillStyle  = '#445566';
+    ctx.font       = '20px sans-serif';
+    ctx.fillText('kpimdad.github.io/Kootharas-WC', W / 2, fy);
+
+    // ── 7. Share or download ──
     canvas.toBlob(async blob => {
       const file = new File([blob], 'kootharas-wc-standings.png', { type: 'image/png' });
-
-      // Try native share (mobile) first
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Kootharas WC 2026 Standings' });
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a   = document.createElement('a');
         a.href = url; a.download = 'kootharas-standings.png'; a.click();
         URL.revokeObjectURL(url);
       }
@@ -1593,7 +1670,7 @@ async function shareStandings() {
     showToast('Could not generate share image', 'error');
   } finally {
     btn.textContent = '📤';
-    btn.disabled = false;
+    btn.disabled    = false;
   }
 }
 
