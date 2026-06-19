@@ -1050,14 +1050,15 @@ async function initMyPredictions() {
   renderMyPredictions();
 }
 
-function renderMyPredictions() {
+let myPredTab = 'upcoming';
+
+function renderMyPredictions(tab) {
+  if (tab) myPredTab = tab;
   let totalPts = 0, exact = 0, winner = 0;
-  const groups = {};
+
   STATE.matches.forEach(m => {
     const p = STATE.predictions[m.matchId];
     if (!p) return;
-    if (!groups[m.matchDay]) groups[m.matchDay] = [];
-    groups[m.matchDay].push({ m, p });
     if (p.pointsAwarded === 13) { totalPts += 13; exact++; }
     else if (p.pointsAwarded === 10) { totalPts += 10; winner++; }
   });
@@ -1070,12 +1071,44 @@ function renderMyPredictions() {
   document.getElementById('stat-winner').textContent = winner;
   document.getElementById('stat-acc').textContent    = accuracy + '%';
 
+  // Split matches into upcoming (no result yet) and finished (result added by admin)
+  const upcomingMatches  = STATE.matches.filter(m => m.resultA == null || m.resultB == null);
+  const finishedMatches  = STATE.matches.filter(m => m.resultA != null && m.resultB != null);
+  const activeList       = myPredTab === 'upcoming' ? upcomingMatches : finishedMatches;
+
+  const groups = {};
+  activeList.forEach(m => {
+    const p = STATE.predictions[m.matchId];
+    if (!p) return;
+    if (!groups[m.matchDay]) groups[m.matchDay] = [];
+    groups[m.matchDay].push({ m, p });
+  });
+
+  const upCount  = upcomingMatches.filter(m => STATE.predictions[m.matchId]).length;
+  const finCount = finishedMatches.filter(m => STATE.predictions[m.matchId]).length;
+
+  const tabBar = `
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+      <button onclick="renderMyPredictions('upcoming')"
+        style="flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.85rem;font-weight:600;
+               background:${myPredTab==='upcoming'?'var(--accent)':'rgba(255,255,255,0.05)'};
+               color:${myPredTab==='upcoming'?'#000':'var(--muted)'}">
+        ⏳ Upcoming (${upCount})
+      </button>
+      <button onclick="renderMyPredictions('finished')"
+        style="flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.85rem;font-weight:600;
+               background:${myPredTab==='finished'?'var(--accent)':'rgba(255,255,255,0.05)'};
+               color:${myPredTab==='finished'?'#000':'var(--muted)'}">
+        ✅ Finished (${finCount})
+      </button>
+    </div>`;
+
   const container = document.getElementById('my-preds-list');
   if (Object.keys(groups).length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No predictions yet — go make some!</div></div>`;
+    container.innerHTML = tabBar + `<div class="empty-state"><div class="empty-state-icon">${myPredTab==='upcoming'?'⏳':'✅'}</div><div class="empty-state-text">${myPredTab==='upcoming'?'No upcoming predictions yet — go make some!':'No finished matches yet'}</div></div>`;
     return;
   }
-  container.innerHTML = Object.entries(groups).map(([day, items]) => `
+  container.innerHTML = tabBar + Object.entries(groups).map(([day, items]) => `
     <div class="matchday-group">
       <div class="matchday-label">${day}</div>
       ${items.map(({ m, p }) => {
@@ -1107,7 +1140,6 @@ function renderMyPredictions() {
       }).join('')}
     </div>`).join('');
 }
-
 // ═══════════════════════════════════════════════════════
 // VIEW 6 — ADMIN PANEL
 // ═══════════════════════════════════════════════════════
@@ -1214,10 +1246,18 @@ async function addAdminUser() {
   } catch (e) { showToast('Error adding user', 'error'); console.error(e); }
 }
 
-function renderAdminMatches() {
+let adminMatchTab = 'upcoming';
+
+function renderAdminMatches(tab) {
+  if (tab) adminMatchTab = tab;
   const container = document.getElementById('admin-match-list');
+
+  const upcoming  = STATE.matches.filter(m => m.resultA == null || m.resultB == null);
+  const completed = STATE.matches.filter(m => m.resultA != null && m.resultB != null);
+  const list = adminMatchTab === 'upcoming' ? upcoming : completed;
+
   const byDay = {};
-  STATE.matches.forEach(m => { if (!byDay[m.matchDay]) byDay[m.matchDay] = []; byDay[m.matchDay].push(m); });
+  list.forEach(m => { if (!byDay[m.matchDay]) byDay[m.matchDay] = []; byDay[m.matchDay].push(m); });
 
   const fetchBtn = `
     <div style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
@@ -1228,7 +1268,25 @@ function renderAdminMatches() {
       <span style="font-size:0.78rem;color:var(--muted)">Auto-runs every hour via GitHub Actions · click to trigger manually</span>
     </div>`;
 
-  container.innerHTML = fetchBtn + Object.entries(byDay).map(([day, matches]) => `
+  const tabs = `
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+      <button onclick="renderAdminMatches('upcoming')"
+        style="flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.85rem;font-weight:600;
+               background:${adminMatchTab==='upcoming'?'var(--accent)':'rgba(255,255,255,0.05)'};
+               color:${adminMatchTab==='upcoming'?'#000':'var(--muted)'}">
+        ⏳ Upcoming (${upcoming.length})
+      </button>
+      <button onclick="renderAdminMatches('completed')"
+        style="flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.85rem;font-weight:600;
+               background:${adminMatchTab==='completed'?'var(--accent)':'rgba(255,255,255,0.05)'};
+               color:${adminMatchTab==='completed'?'#000':'var(--muted)'}">
+        ✅ Completed (${completed.length})
+      </button>
+    </div>`;
+
+  container.innerHTML = fetchBtn + tabs + (Object.keys(byDay).length === 0
+    ? `<div class="empty-state"><div class="empty-state-icon">${adminMatchTab==='upcoming'?'⏳':'✅'}</div><div class="empty-state-text">No ${adminMatchTab} matches</div></div>`
+    : Object.entries(byDay).map(([day, matches]) => `
     <div class="admin-card" style="margin-bottom:1rem">
       <div class="admin-card-head">${day}</div>
       <div class="admin-card-body" style="padding:0">
@@ -1252,7 +1310,7 @@ function renderAdminMatches() {
           </div>`;
         }).join('')}
       </div>
-    </div>`).join('');
+    </div>`).join(''));
 }
 
 // ── Save a single match result (manual or auto) ────────
