@@ -38,39 +38,55 @@ const STATE = {
 };
 
 // ── Rank movement helpers ──────────────────────────────
+// Snapshot stored in Firestore (meta/rankSnapshot) — persists across
+// code deploys and is identical for all users/devices.
 function loadPrevRanks() {
-  try {
-    const data = JSON.parse(localStorage.getItem('wc2026_rankData') || '{}');
-    return data.prevRanks || {};
-  } catch { return {}; }
+  return STATE.prevRanks || {};
 }
-function saveRankSnapshot(rankedUsers, currentMatchCount) {
-  // Two-slot approach:
-  //   prevRanks    = ranks before the latest result batch (used for arrows display)
-  //   currentRanks = ranks as of last render (promoted to prevRanks on next new result)
-  // This means arrows persist through refreshes and reset when new results arrive.
+
+async function saveRankSnapshot(rankedUsers, currentMatchCount) {
   try {
-    const stored = JSON.parse(localStorage.getItem('wc2026_rankData') || '{}');
-    const prevMatchCount = stored.prevMatchCount || 0;
+    const snap = STATE.rankSnapshotDoc || {};
+    const prevMatchCount  = snap.prevMatchCount || 0;
     const newCurrentRanks = {};
     rankedUsers.forEach((u, i) => { newCurrentRanks[u.id] = i + 1; });
 
+    let payload;
     if (currentMatchCount > prevMatchCount) {
-      // New result(s) — promote current → prev, record fresh current
-      localStorage.setItem('wc2026_rankData', JSON.stringify({
-        prevRanks:      stored.currentRanks || {},
+      // New result — promote current → prev
+      payload = {
+        prevRanks:      snap.currentRanks || {},
         currentRanks:   newCurrentRanks,
         prevMatchCount: currentMatchCount,
-      }));
+      };
     } else {
-      // No new results — keep prevRanks intact so arrows survive refreshes
-      localStorage.setItem('wc2026_rankData', JSON.stringify({
-        prevRanks:      stored.prevRanks || {},
+      // No new results — keep prevRanks intact
+      payload = {
+        prevRanks:      snap.prevRanks || {},
         currentRanks:   newCurrentRanks,
         prevMatchCount,
-      }));
+      };
     }
+
+    // Update in-memory state immediately
+    STATE.prevRanks        = payload.prevRanks;
+    STATE.rankSnapshotDoc  = payload;
+
+    // Persist to Firestore (fire-and-forget)
+    setDoc(doc(STATE.db, 'meta', 'rankSnapshot'), payload, { merge: false })
+      .catch(e => console.warn('rankSnapshot write:', e));
   } catch {}
+}
+
+async function loadRankSnapshotFromFirestore() {
+  try {
+    const snap = await getDoc(doc(STATE.db, 'meta', 'rankSnapshot'));
+    if (snap.exists()) {
+      const data          = snap.data();
+      STATE.rankSnapshotDoc = data;
+      STATE.prevRanks       = data.prevRanks || {};
+    }
+  } catch (e) { console.warn('rankSnapshot load:', e); }
 }
 
 // ── Session ────────────────────────────────────────────
@@ -1018,10 +1034,10 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
   document.getElementById('leaderboard-updated').textContent =
     `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`;
 
-  // Save rank snapshot for next visit (overall only)
+  // Save rank snapshot (overall only) — fire-and-forget, doesn't block render
   if (!filter) {
     const completedCount = STATE.matches.filter(m => m.resultA !== null).length;
-    saveRankSnapshot(users, completedCount);
+    saveRankSnapshot(users, completedCount); // async, non-blocking
   }
 
   // Row tap → toggle expand drawer
@@ -1280,7 +1296,7 @@ function renderAdminMatches(tab) {
 
   const upcoming  = STATE.matches
     .filter(m => m.resultA == null || m.resultB == null)
-    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));   // earliest first
+    .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
   const completed = STATE.matches
     .filter(m => m.resultA != null && m.resultB != null)
     .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
@@ -1736,12 +1752,30 @@ async function shareStandings() {
         ctx.fill();
       }
 
-      // Rank
+      // Rank number
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.font         = 'bold 24px "Bebas Neue", sans-serif';
       ctx.fillStyle    = i < 3 ? ['#FFD700','#C0C0C0','#CD7F32'][i] : '#3a5060';
-      ctx.fillText(`${i + 1}`, xRank, midY);
+      ctx.fillText(`${i + 1}`, xRank, midY - 6);
+
+      // Rank movement arrow
+      const prevR = (STATE.prevRanks || {})[u.id];
+      if (prevR != null) {
+        const diff = prevR - (i + 1);
+        ctx.font      = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        if (diff > 0) {
+          ctx.fillStyle = '#27ae60';
+          ctx.fillText(`↑${diff}`, xRank, midY + 12);
+        } else if (diff < 0) {
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillText(`↓${Math.abs(diff)}`, xRank, midY + 12);
+        } else {
+          ctx.fillStyle = '#445566';
+          ctx.fillText('–', xRank, midY + 12);
+        }
+      }
 
       // Name — same colour for everyone
       ctx.textAlign    = 'left';
@@ -1982,6 +2016,7 @@ async function initApp() {
 
   // Tapping topbar avatar opens Profile modal
   document.getElementById('topbar-avatar-wrap').onclick = () => openProfileModal();
+  await loadRankSnapshotFromFirestore(); // load before leaderboard renders
   await initHomeView();
   showView('view-home');
   populateLeaderboardFilter();
