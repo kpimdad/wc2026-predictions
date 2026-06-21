@@ -49,7 +49,10 @@ async function loadRankSnapshotFromFirestore() {
   try {
     const snap = await getDoc(doc(STATE.db, 'meta', 'rankSnapshot'));
     if (snap.exists()) {
-      STATE.prevRanks = snap.data().prevRanks || {};
+      const data = snap.data();
+      // If prevRanks was wiped/empty by old code, fall back to currentRanks as baseline
+      const prev = data.prevRanks || {};
+      STATE.prevRanks = Object.keys(prev).length > 0 ? prev : (data.currentRanks || {});
     }
   } catch (e) { console.warn('rankSnapshot load:', e); }
 }
@@ -947,13 +950,16 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const rankNum = i < 3 ? rankIcon[i] : (i + 1);
 
-    // Rank movement
+    // Rank movement — always show a badge; "–" when no history yet
     let moveHTML = '';
-    if (prevRanks[u.id] != null) {
-      const diff = prevRanks[u.id] - (i + 1);
+    const prevR = prevRanks[u.id];
+    if (prevR != null) {
+      const diff = prevR - (i + 1);
       if (diff > 0)      moveHTML = `<div class="lb-rank-move up">↑${diff}</div>`;
       else if (diff < 0) moveHTML = `<div class="lb-rank-move down">↓${Math.abs(diff)}</div>`;
       else               moveHTML = `<div class="lb-rank-move same">–</div>`;
+    } else {
+      moveHTML = `<div class="lb-rank-move same">–</div>`;
     }
 
     const champ = u.championPick  || '–';
