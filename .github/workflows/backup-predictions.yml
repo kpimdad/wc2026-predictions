@@ -1,16 +1,30 @@
-name: Backup Predictions on Kickoff
+name: Backup Predictions on Match Lock
 
 on:
   schedule:
-    # Runs every 30 minutes — catches every match kickoff within a 35-min window
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Manual trigger from Actions tab
+    # Runs only at the exact lock times (kickoff − 5 min) for all WC 2026 matches
+    - cron: '55 23 * * *'   # 00:00 UTC kickoffs
+    - cron: '25 0 * * *'    # 00:30 UTC kickoffs
+    - cron: '55 0 * * *'    # 01:00 UTC kickoffs
+    - cron: '25 1 * * *'    # 01:30 UTC kickoffs
+    - cron: '55 1 * * *'    # 02:00 UTC kickoffs
+    - cron: '55 2 * * *'    # 03:00 UTC kickoffs
+    - cron: '55 3 * * *'    # 04:00 UTC kickoffs
+    - cron: '55 15 * * *'   # 16:00 UTC kickoffs
+    - cron: '55 16 * * *'   # 17:00 UTC kickoffs
+    - cron: '55 17 * * *'   # 18:00 UTC kickoffs
+    - cron: '55 18 * * *'   # 19:00 UTC kickoffs
+    - cron: '55 19 * * *'   # 20:00 UTC kickoffs
+    - cron: '25 20 * * *'   # 20:30 UTC kickoffs
+    - cron: '55 20 * * *'   # 21:00 UTC kickoffs
+    - cron: '55 21 * * *'   # 22:00 UTC kickoffs
+    - cron: '55 22 * * *'   # 23:00 UTC kickoffs
+    - cron: '25 23 * * *'   # 23:30 UTC kickoffs
+  workflow_dispatch:         # Manual trigger from Actions tab
 
 jobs:
   backup:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write   # needed to commit the Excel file back to the repo
 
     steps:
       - uses: actions/checkout@v4
@@ -23,17 +37,9 @@ jobs:
         run: npm install
         working-directory: scripts
 
-      - name: Run prediction backup
+      - name: Email predictions snapshot
         run: node backup-predictions.js
         working-directory: scripts
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-
-      - name: Commit backup files (if any were created)
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add backups/
-          # Only commit if there's something new
-          git diff --staged --quiet || git commit -m "📊 Prediction backup: $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
