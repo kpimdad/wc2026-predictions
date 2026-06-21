@@ -38,55 +38,37 @@ const STATE = {
 };
 
 // ── Rank movement helpers ──────────────────────────────
-// Snapshot stored in Firestore (meta/rankSnapshot) — persists across
-// code deploys and is identical for all users/devices.
+// Snapshot lives in Firestore (meta/rankSnapshot).
+// Written ONLY when admin saves a match result — never on user renders.
+// All users read it once at startup → same arrows for everyone.
 function loadPrevRanks() {
   return STATE.prevRanks || {};
-}
-
-async function saveRankSnapshot(rankedUsers, currentMatchCount) {
-  try {
-    const snap = STATE.rankSnapshotDoc || {};
-    const prevMatchCount  = snap.prevMatchCount || 0;
-    const newCurrentRanks = {};
-    rankedUsers.forEach((u, i) => { newCurrentRanks[u.id] = i + 1; });
-
-    let payload;
-    if (currentMatchCount > prevMatchCount) {
-      // New result — promote current → prev
-      payload = {
-        prevRanks:      snap.currentRanks || {},
-        currentRanks:   newCurrentRanks,
-        prevMatchCount: currentMatchCount,
-      };
-    } else {
-      // No new results — keep prevRanks intact
-      payload = {
-        prevRanks:      snap.prevRanks || {},
-        currentRanks:   newCurrentRanks,
-        prevMatchCount,
-      };
-    }
-
-    // Update in-memory state immediately
-    STATE.prevRanks        = payload.prevRanks;
-    STATE.rankSnapshotDoc  = payload;
-
-    // Persist to Firestore (fire-and-forget)
-    setDoc(doc(STATE.db, 'meta', 'rankSnapshot'), payload, { merge: false })
-      .catch(e => console.warn('rankSnapshot write:', e));
-  } catch {}
 }
 
 async function loadRankSnapshotFromFirestore() {
   try {
     const snap = await getDoc(doc(STATE.db, 'meta', 'rankSnapshot'));
     if (snap.exists()) {
-      const data          = snap.data();
-      STATE.rankSnapshotDoc = data;
-      STATE.prevRanks       = data.prevRanks || {};
+      STATE.prevRanks = snap.data().prevRanks || {};
     }
   } catch (e) { console.warn('rankSnapshot load:', e); }
+}
+
+// Called by saveMatchResult after points are updated.
+// ranksBefore = { userId: rank } captured before this result was scored.
+function persistRankSnapshot(ranksBefore) {
+  // Current ranks after points update
+  const ranksAfter = {};
+  [...STATE.users]
+    .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+    .forEach((u, i) => { ranksAfter[u.id] = i + 1; });
+
+  STATE.prevRanks = ranksBefore;   // update in-memory immediately
+
+  setDoc(doc(STATE.db, 'meta', 'rankSnapshot'), {
+    prevRanks:    ranksBefore,
+    currentRanks: ranksAfter,
+  }, { merge: false }).catch(e => console.warn('rankSnapshot write:', e));
 }
 
 // ── Session ────────────────────────────────────────────
@@ -1034,12 +1016,6 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
   document.getElementById('leaderboard-updated').textContent =
     `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`;
 
-  // Save rank snapshot (overall only) — fire-and-forget, doesn't block render
-  if (!filter) {
-    const completedCount = STATE.matches.filter(m => m.resultA !== null).length;
-    saveRankSnapshot(users, completedCount); // async, non-blocking
-  }
-
   // Row tap → toggle expand drawer
   document.querySelectorAll('.lb-tr').forEach(row => {
     row.addEventListener('click', () => {
@@ -1379,6 +1355,12 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
+    // Capture ranks BEFORE applying point deltas (for rank arrow calculation)
+    const ranksBefore = {};
+    [...STATE.users]
+      .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+      .forEach((u, i) => { ranksBefore[u.id] = i + 1; });
+
     const uBatch = writeBatch(STATE.db);
     for (const [uid, delta] of Object.entries(deltas)) {
       if (delta === 0) continue;
@@ -1386,6 +1368,16 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
       if (s.exists()) uBatch.update(doc(STATE.db, 'users', uid), { totalPoints: (s.data().totalPoints || 0) + delta });
     }
     await uBatch.commit();
+
+    // Update local STATE.users points so leaderboard re-sorts correctly
+    for (const [uid, delta] of Object.entries(deltas)) {
+      const u = STATE.users.find(x => x.id === uid);
+      if (u) u.totalPoints = (u.totalPoints || 0) + delta;
+    }
+
+    // Persist rank snapshot to Firestore — arrows will show on next leaderboard render
+    persistRankSnapshot(ranksBefore);
+
     // Only show toast for manual saves (auto-fetch batches its own toast)
     if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct`, 'success');
     const m = STATE.matches.find(x => x.matchId === matchId);
