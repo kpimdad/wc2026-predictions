@@ -2,13 +2,34 @@ name: Fetch WC Results
 
 on:
   schedule:
-    # Slot 1 — afternoon kickoffs (16:00–19:00 UTC) → run at 21:30 UTC
-    - cron: '30 21 * * *'
-    # Slot 2 — evening kickoffs (20:00–23:30 UTC) → run at 02:30 UTC
-    - cron: '30 2 * * *'
-    # Slot 3 — late-night kickoffs (00:00–04:00 UTC) → run at 06:30 UTC
-    - cron: '30 6 * * *'
-  workflow_dispatch: # Also allows manual trigger from the Actions tab
+    # One cron per unique WC 2026 kickoff time, fired at:
+    #   kickoff + 2h30m  → covers normal time
+    #   kickoff + 3h30m  → covers extra time + penalties
+    # Script is idempotent — skips already-scored matches, so duplicate
+    # runs are harmless. Public repo = unlimited free Actions minutes.
+
+    - cron: '30 2 * * *'   # 00:00 kickoff +2h30m
+    - cron: '30 3 * * *'   # 00:00 kickoff +3h30m / 00:30 kickoff +3h
+    - cron: '0 3 * * *'    # 00:30 kickoff +2h30m
+    - cron: '0 4 * * *'    # 00:30 kickoff +3h30m / 01:30 kickoff +2h30m
+    - cron: '30 4 * * *'   # 01:00 kickoff +3h30m
+    - cron: '0 5 * * *'    # 01:30 kickoff +3h30m
+    - cron: '30 5 * * *'   # 02:00 kickoff +3h30m
+    - cron: '30 6 * * *'   # 03:00 kickoff +3h30m
+    - cron: '30 7 * * *'   # 04:00 kickoff +3h30m
+    - cron: '30 18 * * *'  # 16:00 kickoff +2h30m
+    - cron: '30 19 * * *'  # 16:00 kickoff +3h30m
+    - cron: '30 20 * * *'  # 17:00 kickoff +3h30m
+    - cron: '30 21 * * *'  # 18:00 kickoff +3h30m
+    - cron: '30 22 * * *'  # 19:00 kickoff +3h30m
+    - cron: '0 23 * * *'   # 20:30 kickoff +2h30m
+    - cron: '30 23 * * *'  # 20:00 kickoff +3h30m
+    - cron: '0 0 * * *'    # 20:30 kickoff +3h30m
+    - cron: '30 0 * * *'   # 21:00 kickoff +3h30m
+    - cron: '30 1 * * *'   # 22:00 kickoff +3h30m
+    - cron: '0 2 * * *'    # 23:30 kickoff +2h30m
+
+  workflow_dispatch: # Manual trigger from Actions tab
 
 jobs:
   fetch:
