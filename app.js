@@ -1167,9 +1167,299 @@ function renderMyPredictions(tab) {
     </div>`).join('');
 }
 // ═══════════════════════════════════════════════════════
-// VIEW 6 — ADMIN PANEL
+// VIEW 6 — KNOCKOUT BRACKET
+// ═══════════════════════════════════════════════════════
+
+const BRACKET_LOCK_UTC = '2026-06-28T19:00:00Z'; // first R32 kickoff
+const BRACKET_ROUNDS = [
+  { key: 'qf',      label: 'Quarter-Finals',  count: 4, pts: 5  },
+  { key: 'sf',      label: 'Semi-Finals',      count: 2, pts: 8  },
+  { key: 'runnerUp',label: 'Runner-Up',        count: 1, pts: 10 },
+  { key: 'champion',label: 'Champion 🏆',      count: 1, pts: 15 },
+];
+
+const ALL_TEAMS = [
+  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia & Herzegovina',
+  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curaçao','Czechia',
+  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana','Haiti',
+  'Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico','Morocco','Netherlands',
+  'New Zealand','Norway','Panama','Paraguay','Portugal','Qatar','Saudi Arabia',
+  'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
+  'Tunisia','Türkiye','USA','Uruguay','Uzbekistan',
+].sort();
+
+function isBracketLocked() {
+  return Date.now() >= new Date(BRACKET_LOCK_UTC).getTime();
+}
+
+async function initBracketView() {
+  const body = document.getElementById('bracket-body');
+  body.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  const userId = STATE.session.userId;
+  let userBracket = {};
+  let bracketResults = {};
+
+  try {
+    const [bSnap, rSnap] = await Promise.all([
+      getDoc(doc(STATE.db, 'brackets', userId)),
+      getDoc(doc(STATE.db, 'bracketResults', 'results')),
+    ]);
+    if (bSnap.exists()) userBracket = bSnap.data();
+    if (rSnap.exists()) bracketResults = rSnap.data();
+  } catch(e) { console.warn('bracket load:', e); }
+
+  const locked = isBracketLocked();
+  const hasResults = Object.keys(bracketResults).length > 0;
+  const bonusPts = userBracket.bonusPts || 0;
+
+  // Banner
+  let bannerHTML = locked
+    ? `<div class="bracket-lock-banner">🔒 Bracket locked · ${new Date(BRACKET_LOCK_UTC).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC</div>`
+    : `<div class="bracket-lock-banner open">✅ Open · Locks ${new Date(BRACKET_LOCK_UTC).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC when R32 starts</div>`;
+
+  // Summary if has bonus pts
+  let summaryHTML = bonusPts > 0
+    ? `<div class="bracket-summary"><div><div class="bracket-summary-label">Bracket Bonus</div></div><div class="bracket-summary-pts">+${bonusPts} pts</div></div>`
+    : '';
+
+  // Team options
+  const opts = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  // Build rounds
+  let roundsHTML = BRACKET_ROUNDS.map(round => {
+    const slots = round.count;
+    let picksHTML = '';
+    for (let i = 0; i < slots; i++) {
+      const val = slots === 1
+        ? (userBracket[round.key] || '')
+        : ((userBracket[round.key] || [])[i] || '');
+
+      const actual = slots === 1
+        ? bracketResults[round.key]
+        : (bracketResults[round.key] || [])[i]; // not directly comparable but scored separately
+
+      // Score badge
+      let badge = '';
+      if (locked && hasResults && val) {
+        const actualList = slots === 1
+          ? [bracketResults[round.key]]
+          : (bracketResults[round.key] || []);
+        const isHit = actualList.includes(val);
+        badge = isHit
+          ? `<span class="bracket-score-badge hit">+${round.pts} ✓</span>`
+          : `<span class="bracket-score-badge miss">✗</span>`;
+      } else if (locked && val && !hasResults) {
+        badge = `<span class="bracket-score-badge pending">Pending</span>`;
+      }
+
+      const labelText = slots > 1 ? `Pick ${i + 1}` : round.label;
+      picksHTML += `
+        <div class="bracket-pick-row">
+          <label>${labelText}</label>
+          <select class="bracket-select" data-round="${round.key}" data-idx="${i}" ${locked ? 'disabled' : ''}>
+            <option value="">— Pick a team —</option>
+            ${ALL_TEAMS.map(t => `<option value="${t}" ${t === val ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+          ${badge}
+        </div>`;
+    }
+    return `
+      <div class="bracket-round">
+        <div class="bracket-round-head">
+          <span>${round.label}</span>
+          <span class="bracket-round-pts">+${round.pts} pts each</span>
+        </div>
+        <div class="bracket-round-body">${picksHTML}</div>
+      </div>`;
+  }).join('');
+
+  const saveBtn = locked ? '' : `<button class="btn btn-primary bracket-save-btn" id="bracket-save-btn">Save My Bracket</button>`;
+
+  body.innerHTML = bannerHTML + summaryHTML + roundsHTML + saveBtn;
+
+  if (!locked) {
+    document.getElementById('bracket-save-btn').addEventListener('click', saveBracket);
+  }
+}
+
+async function saveBracket() {
+  if (isBracketLocked()) { showToast('Bracket is locked', 'error'); return; }
+  const btn = document.getElementById('bracket-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const picks = {};
+  document.querySelectorAll('.bracket-select').forEach(sel => {
+    const { round, idx } = sel.dataset;
+    const roundDef = BRACKET_ROUNDS.find(r => r.key === round);
+    if (!roundDef) return;
+    if (roundDef.count === 1) {
+      picks[round] = sel.value;
+    } else {
+      if (!picks[round]) picks[round] = [];
+      picks[round][parseInt(idx)] = sel.value;
+    }
+  });
+
+  // Validate — no duplicates within same round
+  for (const round of BRACKET_ROUNDS) {
+    if (round.count > 1) {
+      const vals = (picks[round.key] || []).filter(Boolean);
+      if (new Set(vals).size !== vals.length) {
+        showToast(`Duplicate teams in ${round.label}`, 'error');
+        btn.disabled = false; btn.textContent = 'Save My Bracket'; return;
+      }
+    }
+  }
+
+  try {
+    await setDoc(doc(STATE.db, 'brackets', STATE.session.userId), {
+      ...picks, userId: STATE.session.userId, submittedAt: serverTimestamp(),
+    });
+    showToast('✅ Bracket saved!', 'success');
+  } catch(e) { showToast('Error saving bracket', 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Save My Bracket'; }
+}
+
+// VIEW 7 — ADMIN PANEL
 // ═══════════════════════════════════════════════════════
 let adminTab = 'users';
+
+// ── Admin: Bracket Results ─────────────────────────────
+async function renderAdminBracket() {
+  const formEl = document.getElementById('bracket-admin-form');
+  const listEl = document.getElementById('bracket-submissions-list');
+  formEl.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  listEl.innerHTML = '';
+
+  let bracketResults = {};
+  let allBrackets = [];
+  try {
+    const [rSnap, bSnap] = await Promise.all([
+      getDoc(doc(STATE.db, 'bracketResults', 'results')),
+      getDocs(collection(STATE.db, 'brackets')),
+    ]);
+    if (rSnap.exists()) bracketResults = rSnap.data();
+    bSnap.forEach(d => allBrackets.push(d.data()));
+  } catch(e) { console.warn('admin bracket load:', e); }
+
+  // Build team selector for each round
+  const ADMIN_ROUNDS = [
+    { key: 'qf',       label: 'Quarter-Finalists (4 teams)', count: 4 },
+    { key: 'sf',       label: 'Semi-Finalists (2 teams)',    count: 2 },
+    { key: 'runnerUp', label: 'Runner-Up',                   count: 1 },
+    { key: 'champion', label: 'Champion 🏆',                 count: 1 },
+  ];
+
+  formEl.innerHTML = ADMIN_ROUNDS.map(round => {
+    const selected = round.count === 1
+      ? [bracketResults[round.key]].filter(Boolean)
+      : (bracketResults[round.key] || []);
+
+    const tags = ALL_TEAMS.map(t =>
+      `<span class="bracket-admin-tag ${selected.includes(t) ? 'selected' : ''}"
+             data-round="${round.key}" data-team="${t}" data-max="${round.count}">${t}</span>`
+    ).join('');
+
+    return `<div class="bracket-admin-round"><h4>${round.label}</h4><div class="bracket-admin-tags">${tags}</div></div>`;
+  }).join('');
+
+  // Tag click toggle
+  formEl.querySelectorAll('.bracket-admin-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      const { round, team, max } = tag.dataset;
+      const maxN = parseInt(max);
+      const siblings = formEl.querySelectorAll(`.bracket-admin-tag[data-round="${round}"]`);
+      const selectedNow = [...siblings].filter(s => s.classList.contains('selected'));
+      if (tag.classList.contains('selected')) {
+        tag.classList.remove('selected');
+      } else if (selectedNow.length < maxN) {
+        tag.classList.add('selected');
+      } else {
+        showToast(`Max ${maxN} team(s) for this round`, 'error');
+      }
+    });
+  });
+
+  // Render submissions
+  const userMap = {};
+  STATE.users.forEach(u => { userMap[u.id] = u.nickname; });
+
+  if (allBrackets.length === 0) {
+    listEl.innerHTML = '<div style="padding:1rem;color:var(--muted);font-size:0.875rem">No submissions yet</div>';
+  } else {
+    listEl.innerHTML = allBrackets.map(b => {
+      const name = userMap[b.userId] || b.userId;
+      const champion = b.champion || '–';
+      const runnerUp = b.runnerUp || '–';
+      const pts = b.bonusPts != null ? `+${b.bonusPts} pts` : 'Not scored';
+      return `<div class="bracket-sub-row">
+        <span class="bracket-sub-name">${name}</span>
+        <span style="color:var(--muted);font-size:0.8rem">🏆 ${champion} · 🥈 ${runnerUp}</span>
+        <span class="bracket-sub-pts">${pts}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function scoreBrackets() {
+  const btn = document.getElementById('score-brackets-btn');
+  const resultEl = document.getElementById('bracket-score-result');
+  btn.disabled = true; btn.textContent = 'Scoring…';
+
+  // Collect admin-selected results
+  const results = {};
+  const ADMIN_ROUNDS = [
+    { key: 'qf', count: 4 }, { key: 'sf', count: 2 },
+    { key: 'runnerUp', count: 1 }, { key: 'champion', count: 1 },
+  ];
+  for (const round of ADMIN_ROUNDS) {
+    const selected = [...document.querySelectorAll(`.bracket-admin-tag[data-round="${round.key}"].selected`)]
+      .map(t => t.dataset.team);
+    results[round.key] = round.count === 1 ? (selected[0] || null) : selected;
+  }
+
+  try {
+    await setDoc(doc(STATE.db, 'bracketResults', 'results'), results);
+
+    // Score each bracket
+    const bSnap = await getDocs(collection(STATE.db, 'brackets'));
+    const SCORING = { qf: 5, sf: 8, runnerUp: 10, champion: 15 };
+    let totalScored = 0;
+
+    const batch = writeBatch(STATE.db);
+    bSnap.forEach(d => {
+      const b = d.data();
+      let bonus = 0;
+      for (const [key, pts] of Object.entries(SCORING)) {
+        const actual = Array.isArray(results[key]) ? results[key] : [results[key]].filter(Boolean);
+        const pick   = Array.isArray(b[key]) ? b[key] : [b[key]].filter(Boolean);
+        pick.forEach(p => { if (p && actual.includes(p)) bonus += pts; });
+      }
+      batch.update(d.ref, { bonusPts: bonus });
+
+      // Add bonus to user totalPoints
+      const u = STATE.users.find(x => x.id === b.userId);
+      const prevBonus = b.bonusPts || 0;
+      const delta = bonus - prevBonus;
+      if (delta !== 0 && u) {
+        const uRef = doc(STATE.db, 'users', b.userId);
+        batch.update(uRef, { totalPoints: (u.totalPoints || 0) + delta });
+        if (u) u.totalPoints = (u.totalPoints || 0) + delta;
+      }
+      totalScored++;
+    });
+
+    await batch.commit();
+    resultEl.innerHTML = `<span style="color:#2ecc71">✅ Scored ${totalScored} bracket(s)</span>`;
+    showToast(`✅ ${totalScored} brackets scored`, 'success');
+    renderAdminBracket();
+  } catch(e) {
+    resultEl.innerHTML = `<span style="color:#e74c3c">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Score All Brackets';
+  }
+}
 
 async function initAdminPanel() {
   if (!STATE.session?.isAdmin) { showToast('Admin access only', 'error'); return; }
@@ -1183,6 +1473,7 @@ function setAdminTab(tab) {
   if (tab === 'users')    renderAdminUsers();
   if (tab === 'matches')  renderAdminMatches();
   if (tab === 'recalc')   renderRecalcSection();
+  if (tab === 'bracket')  renderAdminBracket();
   if (tab === 'backdate') renderBackdateSection();
 }
 
@@ -2100,6 +2391,7 @@ function wireEvents() {
       if      (view === 'view-leaderboard') { showView(view); await initLeaderboard(); }
       else if (view === 'view-my-preds')    { showView(view); await initMyPredictions(); }
       else if (view === 'view-admin')       { showView(view); await initAdminPanel(); }
+      else if (view === 'view-bracket')     { showView(view); await initBracketView(); }
       else if (view === 'view-home')        { showView(view); await initHomeView(); }
     });
   });
@@ -2149,6 +2441,7 @@ function wireEvents() {
   document.getElementById('recalc-all-btn').addEventListener('click', recalcAll);
   document.getElementById('rescore-all-btn').addEventListener('click', rescoreAllMatches);
   document.getElementById('run-audit-btn').addEventListener('click', runIntegrityAudit);
+  document.getElementById('score-brackets-btn').addEventListener('click', scoreBrackets);
   document.getElementById('share-standings-btn').addEventListener('click', shareStandings);
 
   // Champion modal
