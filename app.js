@@ -246,6 +246,14 @@ async function fetchMyPredictions() {
   snap.forEach(d => { const p = d.data(); STATE.predictions[p.matchId] = p; });
 }
 
+async function fetchBrackets() {
+  try {
+    const snap = await getDocs(collection(STATE.db, 'brackets'));
+    STATE.brackets = {};
+    snap.forEach(d => { STATE.brackets[d.id] = d.data(); });
+  } catch(e) { STATE.brackets = {}; }
+}
+
 async function fetchUsers() {
   const snap = await getDocs(collection(STATE.db, 'users'));
   STATE.users = [];
@@ -872,7 +880,7 @@ async function openCompareModal(userId, nickname) {
 async function initLeaderboard() {
   document.getElementById('leaderboard-body').innerHTML =
     '<div class="loading-center"><div class="spinner"></div></div>';
-  await Promise.all([fetchUsers(), loadRankSnapshotFromFirestore()]);
+  await Promise.all([fetchUsers(), loadRankSnapshotFromFirestore(), fetchBrackets()]);
   await computeUserAccuracy();
   renderLeaderboard('overall');
 }
@@ -983,13 +991,24 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
       <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
     </tr>`;
 
-    // Expandable drawer — shows champion/golden boot picks
+    // Bracket bonus
+    const bracket = (STATE.brackets || {})[u.id];
+    const bracketBonus = bracket?.bonusPts != null
+      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🗓️ Bracket</span>+${bracket.bonusPts} pts</span>`
+      : '';
+    const bracketChampion = bracket?.champion
+      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Bracket Pick</span>${bracket.champion}</span>`
+      : '';
+
+    // Expandable drawer — shows champion/golden boot picks + bracket
     const drawerRow = `<tr class="lb-tr-drawer" data-uid="${u.id}">
       <td colspan="8">
         <div class="lb-drawer">
           <div class="lb-drawer-picks">
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner</span>${champ}</span>
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">⚽ Top Scorer</span>${boot}</span>
+            ${bracketChampion}
+            ${bracketBonus}
           </div>
         </div>
       </td>
