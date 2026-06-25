@@ -88,6 +88,10 @@
     <span class="bnav-icon">🏆</span>
     <span class="bnav-label">Champions Picks</span>
   </button>
+  <button class="bnav-btn" data-view="view-bracket">
+    <span class="bnav-icon">🗓️</span>
+    <span class="bnav-label">Bracket</span>
+  </button>
   <button class="bnav-btn admin-btn" data-view="view-admin" id="admin-nav-btn" style="display:none">
     <span class="bnav-icon">⚙️</span>
     <span class="bnav-label">Admin</span>
@@ -327,7 +331,17 @@
 </div>
 
 <!-- ════════════════════════════════════════
-     VIEW 6 — ADMIN PANEL
+     VIEW 6 — KNOCKOUT BRACKET
+     ════════════════════════════════════════ -->
+<div id="view-bracket" class="view">
+  <div class="view-header">
+    <h2 class="view-title">🗓️ Bracket Picks</h2>
+  </div>
+  <div id="bracket-body"></div>
+</div>
+
+<!--
+     VIEW 7 — ADMIN PANEL
      ════════════════════════════════════════ -->
 <div id="view-admin" class="view">
   <div class="view-header">
@@ -341,6 +355,7 @@
     <button class="tab-btn" data-tab="backdate">Backdate</button>
     <button class="tab-btn" data-tab="recalc">Recalculate</button>
     <button class="tab-btn" data-tab="audit">🔍 Audit</button>
+    <button class="tab-btn" data-tab="bracket">🗓️ Bracket</button>
   </div>
 
   <!-- Tab: Manage Users -->
@@ -453,6 +468,30 @@
       </div>
     </div>
   </div>
+
+  <!-- Tab: Bracket Scoring -->
+  <div class="admin-section" data-tab="bracket" style="display:none">
+    <div class="admin-card">
+      <div class="admin-card-head">🗓️ Bracket Actual Results</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1.25rem">
+          Enter the teams that actually reached each round. Used to score all bracket picks.
+        </p>
+        <div id="bracket-admin-form"></div>
+        <button id="score-brackets-btn" class="btn btn-primary" style="width:auto;margin-top:1.25rem">
+          Score All Brackets
+        </button>
+        <div id="bracket-score-result" style="margin-top:1rem;font-size:0.875rem"></div>
+      </div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-head">📊 Bracket Submissions</div>
+      <div class="admin-card-body" style="padding:0">
+        <div id="bracket-submissions-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- ════════════════════════════════════════
