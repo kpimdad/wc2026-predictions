@@ -1178,16 +1178,6 @@ const BRACKET_ROUNDS = [
   { key: 'champion',label: 'Champion 🏆',      count: 1, pts: 15 },
 ];
 
-const ALL_TEAMS = [
-  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia & Herzegovina',
-  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curaçao','Czechia',
-  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana','Haiti',
-  'Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico','Morocco','Netherlands',
-  'New Zealand','Norway','Panama','Paraguay','Portugal','Qatar','Saudi Arabia',
-  'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
-  'Tunisia','Türkiye','USA','Uruguay','Uzbekistan',
-].sort();
-
 function isBracketLocked() {
   return Date.now() >= new Date(BRACKET_LOCK_UTC).getTime();
 }
