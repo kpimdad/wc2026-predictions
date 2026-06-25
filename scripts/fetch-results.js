@@ -23,6 +23,72 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
+// ── Team name aliases (football-data.org name → our local name) ───────────────
+// The API uses different spellings for some teams. Extend this as needed.
+const TEAM_ALIASES = {
+  'Bosnia and Herzegovina':        'Bosnia & Herzegovina',
+  "Côte d'Ivoire":                 'Ivory Coast',
+  "Cote d'Ivoire":                 'Ivory Coast',
+  'Korea Republic':                'South Korea',
+  'Republic of Korea':             'South Korea',
+  'Czech Republic':                'Czechia',
+  'United States':                 'USA',
+  'Cabo Verde':                    'Cape Verde',
+  'Congo DR':                      'DR Congo',
+  'Democratic Republic of Congo':  'DR Congo',
+};
+
+function normalizeTeam(name) {
+  if (!name) return '';
+  return (TEAM_ALIASES[name] || name).toLowerCase().trim();
+}
+
+// Check if an API team name refers to the same team as a local name.
+// Tries exact match first, then word-level overlap for edge cases.
+function teamsMatch(apiName, localName) {
+  const a = normalizeTeam(apiName);
+  const b = localName.toLowerCase().trim();
+  if (a === b) return true;
+  const wordsA = a.split(/[\s&]+/).filter(w => w.length > 2);
+  const wordsB = b.split(/[\s&]+/).filter(w => w.length > 2);
+  if (wordsA.length === 0 || wordsB.length === 0) return false;
+  return wordsA.every(w => wordsB.some(bw => bw.includes(w) || w.includes(bw)));
+}
+
+// Find our local match for an API result.
+// CRITICAL FIX: when two games share the same kickoff slot, disambiguate
+// by team name instead of returning the first match found (which caused
+// both API results to be mapped to the same local match).
+function findLocalMatch(apiMatch) {
+  const apiTime = new Date(apiMatch.utcDate).getTime();
+  const apiHome = apiMatch.homeTeam?.name || '';
+  const apiAway = apiMatch.awayTeam?.name || '';
+
+  // Narrow to same-kickoff-time candidates (±5 min tolerance)
+  const candidates = MATCHES.filter(
+    m => Math.abs(new Date(m.kickoffUTC).getTime() - apiTime) < 5 * 60 * 1000
+  );
+
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  // Multiple matches at same time — must match by team name
+  const byTeam = candidates.find(
+    m => teamsMatch(apiHome, m.teamA) && teamsMatch(apiAway, m.teamB)
+  );
+  if (byTeam) return byTeam;
+
+  // Try reversed (API sometimes lists home/away differently)
+  const byTeamRev = candidates.find(
+    m => teamsMatch(apiHome, m.teamB) && teamsMatch(apiAway, m.teamA)
+  );
+  if (byTeamRev) return byTeamRev;
+
+  // Could not disambiguate — log and skip (safer than scoring the wrong match)
+  console.warn(`  ⚠ Cannot disambiguate ${apiHome} vs ${apiAway} @ ${apiMatch.utcDate} among ${candidates.length} candidates: ${candidates.map(c => `${c.teamA} vs ${c.teamB}`).join(', ')}`);
+  return null;
+}
+
 // ── Scoring (mirror of app.js) ────────────────────────────────────────────────
 function calculatePoints(pA, pB, rA, rB) {
   if (pA === rA && pB === rB) return 13;
@@ -60,7 +126,7 @@ async function main() {
 
   // Fetch yesterday + today (UTC) to avoid missing matches that kicked off
   // near midnight — the run fires on the next UTC date and would miss them
-  // with a single-day filter. The script skips already-scored matches so
+  // with a single-day filter. Already-scored matches are skipped, so
   // fetching a wider window is harmless.
   const now  = new Date();
   const yesterday = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -77,6 +143,7 @@ async function main() {
 
   const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
   console.log(`Found ${finished.length} finished match(es)`);
+  finished.forEach(m => console.log(`  API: ${m.homeTeam?.name} vs ${m.awayTeam?.name} @ ${m.utcDate} → ${m.score?.fullTime?.home}-${m.score?.fullTime?.away}`));
 
   // Capture ranks BEFORE any updates — mirror the app's multi-level sort
   // (points → exact scores → correct results → fewer predictions submitted)
@@ -102,16 +169,14 @@ async function main() {
     const rB = apiMatch.score?.fullTime?.away;
     if (rA == null || rB == null) continue;
 
-    // Match by kickoff time (±5 min tolerance)
-    const apiTime = new Date(apiMatch.utcDate).getTime();
-    const ourMatch = MATCHES.find(
-      m => Math.abs(new Date(m.kickoffUTC).getTime() - apiTime) < 5 * 60 * 1000
-    );
+    const ourMatch = findLocalMatch(apiMatch);
 
     if (!ourMatch) {
       console.log(`  ⚠ No local match for: ${apiMatch.homeTeam?.name} vs ${apiMatch.awayTeam?.name} @ ${apiMatch.utcDate}`);
       continue;
     }
+
+    console.log(`  Matched: API [${apiMatch.homeTeam?.name} vs ${apiMatch.awayTeam?.name}] → local [${ourMatch.teamA} vs ${ourMatch.teamB}] (${ourMatch.matchId})`);
 
     // Check existing Firestore state
     const matchRef = db.collection('matches').doc(ourMatch.matchId);
