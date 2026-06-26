@@ -1277,11 +1277,11 @@ function renderJokersTab() {
       const isLocked = now >= new Date(m.kickoffUTC).getTime();
       const hasJoker  = jokers.includes(m.matchId);
       const kickoff   = new Date(m.kickoffUTC).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
-      // Show real teams if known, otherwise use venue as fixture label
-      const venue     = m.venue ? m.venue.split(',')[0] : null;
+      // Show real teams if known; otherwise venue name (teams revealed after group stage)
+      const venueName = m.venue ? m.venue.split(',')[0] : null;
       const teams     = (m.teamA !== 'TBD' && m.teamB !== 'TBD')
         ? `${m.teamA} vs ${m.teamB}`
-        : venue || `Fixture ${idx + 1}`;
+        : venueName || `Fixture ${idx + 1}`;
 
       let btn = '';
       if (isLocked && hasJoker) {
