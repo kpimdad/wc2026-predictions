@@ -1,19 +1,9 @@
 name: Fetch WC Results
 
 on:
-  schedule:
-    # Runs every 30 minutes during WC match hours (UTC).
-    # Script fetches yesterday+today, skips already-scored matches, so
-    # duplicate fires are harmless. Public repo = free unlimited minutes.
-    # This ensures no match waits more than 30 min regardless of GitHub
-    # Actions scheduling delays.
-
-    # Every 30 min, 00:00–08:00 UTC (covers late-night/early-morning kickoffs)
-    - cron: '0,30 0,1,2,3,4,5,6,7,8 * * *'
-    # Every 30 min, 16:00–24:00 UTC (covers afternoon/evening kickoffs)
-    - cron: '0,30 16,17,18,19,20,21,22,23 * * *'
-
-  workflow_dispatch: # Manual trigger from Actions tab
+  # Automatic schedule disabled — results are updated manually via the admin panel.
+  # To trigger a fetch, go to Actions tab → Fetch WC Results → Run workflow.
+  workflow_dispatch: # Manual trigger only
 
 jobs:
   fetch:
