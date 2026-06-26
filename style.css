@@ -1774,8 +1774,149 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 #toast-container { bottom: calc(90px + env(safe-area-inset-bottom)); }
 
 /* ═══════════════════════════════════════════════
-   KNOCKOUT BRACKET
+   WILD CARDS — Tabs
    ═══════════════════════════════════════════════ */
+.wc-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.wc-tab {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wc-tab.active {
+  background: rgba(255,200,0,0.12);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ═══════════════════════════════════════════════
+   JOKERS TAB
+   ═══════════════════════════════════════════════ */
+#wc-jokers-body { padding: 1rem; max-width: 600px; margin: 0 auto; }
+
+.joker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+.joker-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+.joker-counter-num {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+}
+.joker-counter-label { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.joker-counter.joker-counter-low  .joker-counter-num { color: #e67e22; }
+.joker-counter.joker-counter-empty .joker-counter-num { color: #e74c3c; }
+.joker-rule {
+  font-size: 0.82rem;
+  color: var(--silver);
+  line-height: 1.5;
+  text-align: right;
+}
+.joker-rule strong { color: var(--gold); }
+
+.joker-stage-group { margin-bottom: 1.25rem; }
+.joker-stage-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.3rem 0;
+  margin-bottom: 0.4rem;
+}
+
+.joker-match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.875rem;
+  margin-bottom: 0.4rem;
+  transition: border-color 0.15s;
+}
+.joker-match-row.joker-active {
+  border-color: rgba(255,200,0,0.45);
+  background: rgba(255,200,0,0.05);
+}
+.joker-match-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.joker-match-teams {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.joker-match-time { font-size: 0.72rem; color: var(--muted); }
+
+.joker-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.06);
+  color: var(--silver);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.joker-btn:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,200,0,0.1);
+}
+.joker-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.joker-btn-remove {
+  border-color: rgba(255,200,0,0.5);
+  color: var(--gold);
+  background: rgba(255,200,0,0.1);
+}
+.joker-btn-remove:hover { background: rgba(231,76,60,0.12); border-color: #e74c3c; color: #e74c3c; }
+
+.joker-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 0.25rem 0.6rem;
+  white-space: nowrap;
+}
+.joker-badge-active  { background: rgba(255,200,0,0.15); color: var(--gold); }
+.joker-badge-locked  { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+/* ═══════════════════════════════════════════════
+   KNOCKOUT BRACKET (Knockout Picks tab)
+   ═══════════════════════════════════════════════ */
+#wc-knockout-body { padding: 1rem; max-width: 600px; margin: 0 auto; }
 #bracket-body { padding: 1rem; max-width: 600px; margin: 0 auto; }
 
 .bracket-lock-banner {
@@ -1910,7 +2051,11 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 .bracket-sub-pts { font-weight: 800; color: var(--gold); font-size: 1rem; }
 
 @media (max-width: 480px) {
-  #bracket-body { padding: 0.75rem; }
+  #wc-knockout-body, #bracket-body { padding: 0.75rem; }
+  #wc-jokers-body { padding: 0.75rem; }
   .bracket-pick-row label { min-width: 44px; font-size: 0.72rem; }
   .bracket-select { font-size: 0.82rem; padding: 0.45rem 0.6rem; }
+  .joker-match-teams { font-size: 0.82rem; }
+  .joker-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .joker-rule { text-align: left; }
 }

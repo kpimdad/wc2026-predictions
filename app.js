@@ -1186,7 +1186,7 @@ function renderMyPredictions(tab) {
     </div>`).join('');
 }
 // ═══════════════════════════════════════════════════════
-// VIEW 6 — KNOCKOUT BRACKET
+// VIEW 6 — WILD CARDS (Knockout Picks + Jokers)
 // ═══════════════════════════════════════════════════════
 
 const BRACKET_LOCK_UTC = '2026-06-28T19:00:00Z'; // first R32 kickoff
@@ -1197,12 +1197,145 @@ const BRACKET_ROUNDS = [
   { key: 'champion',label: 'Champion 🏆',      count: 1, pts: 15 },
 ];
 
+const JOKER_MAX = 5;
+const JOKER_PTS = 20;
+
 function isBracketLocked() {
   return Date.now() >= new Date(BRACKET_LOCK_UTC).getTime();
 }
 
-async function initBracketView() {
-  const body = document.getElementById('bracket-body');
+// ── Fetch this user's joker selections ────────────────
+async function fetchJokers() {
+  try {
+    const snap = await getDoc(doc(STATE.db, 'jokers', STATE.session.userId));
+    STATE.jokers = snap.exists() ? (snap.data().matchIds || []) : [];
+  } catch(e) { STATE.jokers = []; }
+}
+
+// ── Toggle joker on/off for a knockout match ──────────
+async function toggleJoker(matchId) {
+  const m = STATE.matches.find(x => x.matchId === matchId);
+  if (m && Date.now() >= new Date(m.kickoffUTC).getTime()) {
+    showToast('Match already started — joker locked 🔒', 'error'); return;
+  }
+  const current = STATE.jokers || [];
+  let updated;
+  if (current.includes(matchId)) {
+    updated = current.filter(id => id !== matchId);
+  } else {
+    if (current.length >= JOKER_MAX) {
+      showToast(`All ${JOKER_MAX} jokers used — remove one first`, 'error'); return;
+    }
+    updated = [...current, matchId];
+  }
+  STATE.jokers = updated;
+  try {
+    await setDoc(doc(STATE.db, 'jokers', STATE.session.userId), {
+      matchIds: updated, userId: STATE.session.userId, updatedAt: serverTimestamp()
+    });
+    renderJokersTab();
+    showToast(updated.includes(matchId) ? '⚡ Joker applied!' : 'Joker removed', 'success');
+  } catch(e) {
+    STATE.jokers = current;
+    showToast('Error saving joker', 'error');
+  }
+}
+
+// ── Render Jokers tab ──────────────────────────────────
+function renderJokersTab() {
+  const body = document.getElementById('wc-jokers-body');
+  const jokers = STATE.jokers || [];
+  const used = jokers.length;
+  const remaining = JOKER_MAX - used;
+
+  const knockoutMatches = MATCHES
+    .filter(m => m.stage !== 'Group')
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
+
+  const now = Date.now();
+  const STAGE_ORDER  = ['R32','R16','QF','SF','3RD','FINAL'];
+  const STAGE_LABELS = { R32:'Round of 32', R16:'Round of 16', QF:'Quarter-Finals', SF:'Semi-Finals', '3RD':'Third Place', FINAL:'Final 🏆' };
+
+  const byStage = {};
+  knockoutMatches.forEach(m => { (byStage[m.stage] = byStage[m.stage] || []).push(m); });
+
+  const counterCls = remaining === 0 ? 'joker-counter-empty' : remaining <= 2 ? 'joker-counter-low' : '';
+
+  let html = `
+    <div class="joker-header">
+      <div class="joker-counter ${counterCls}">
+        <span class="joker-counter-num">${remaining}</span>
+        <span class="joker-counter-label">of ${JOKER_MAX} jokers left</span>
+      </div>
+      <div class="joker-rule">⚡ Exact score = <strong>${JOKER_PTS} pts</strong> &nbsp;·&nbsp; Wrong = <strong>0 pts</strong></div>
+    </div>`;
+
+  STAGE_ORDER.forEach(stage => {
+    if (!byStage[stage]) return;
+    html += `<div class="joker-stage-group"><div class="joker-stage-label">${STAGE_LABELS[stage] || stage}</div>`;
+    byStage[stage].forEach(m => {
+      const isLocked = now >= new Date(m.kickoffUTC).getTime();
+      const hasJoker  = jokers.includes(m.matchId);
+      const kickoff   = new Date(m.kickoffUTC).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
+      const teams     = (m.teamA !== 'TBD' && m.teamB !== 'TBD')
+        ? `${m.teamA} vs ${m.teamB}`
+        : `Match ${m.matchId.replace('m','')}`;
+
+      let btn = '';
+      if (isLocked && hasJoker) {
+        btn = `<span class="joker-badge joker-badge-active">⚡ Active</span>`;
+      } else if (isLocked) {
+        btn = `<span class="joker-badge joker-badge-locked">🔒</span>`;
+      } else if (hasJoker) {
+        btn = `<button class="joker-btn joker-btn-remove" onclick="toggleJoker('${m.matchId}')">⚡ Remove</button>`;
+      } else if (remaining > 0) {
+        btn = `<button class="joker-btn" onclick="toggleJoker('${m.matchId}')">Use Joker</button>`;
+      } else {
+        btn = `<button class="joker-btn" disabled>No jokers left</button>`;
+      }
+
+      html += `
+        <div class="joker-match-row${hasJoker ? ' joker-active' : ''}">
+          <div class="joker-match-info">
+            <div class="joker-match-teams">${teams}</div>
+            <div class="joker-match-time">${kickoff} UTC</div>
+          </div>
+          ${btn}
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+// ── Wild Cards view: tabs + first render ──────────────
+async function initWildCardsView() {
+  if (!STATE.jokers) await fetchJokers();
+
+  // Wire tab buttons (replace onclick each time — safe)
+  document.querySelectorAll('.wc-tab').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.wc-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const isKnockout = btn.dataset.wctab === 'knockout';
+      document.getElementById('wc-knockout-body').style.display = isKnockout ? '' : 'none';
+      document.getElementById('wc-jokers-body').style.display   = isKnockout ? 'none' : '';
+      if (!isKnockout) renderJokersTab();
+    };
+  });
+
+  // Default: show Knockout Picks
+  document.getElementById('wc-knockout-body').style.display = '';
+  document.getElementById('wc-jokers-body').style.display   = 'none';
+  document.querySelectorAll('.wc-tab')[0].classList.add('active');
+  document.querySelectorAll('.wc-tab')[1].classList.remove('active');
+  await renderKnockoutPicksTab();
+}
+
+// ── Knockout Picks tab (renamed from initBracketView) ──
+async function renderKnockoutPicksTab() {
+  const body = document.getElementById('wc-knockout-body');
   body.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
   const userId = STATE.session.userId;
@@ -1652,14 +1785,29 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
   try {
     await setDoc(doc(STATE.db, 'matches', matchId), { resultA: rA, resultB: rB, status: 'completed' }, { merge: true });
     const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', matchId)));
+
+    // Load jokers — users who applied a joker to this match get 20pts for exact / 0pts for wrong
+    const jokerMap = {};
+    try {
+      const jSnap = await getDocs(collection(STATE.db, 'jokers'));
+      jSnap.forEach(d => { jokerMap[d.id] = new Set(d.data().matchIds || []); });
+    } catch(e) { console.warn('joker load:', e); }
+
     const batch = writeBatch(STATE.db);
-    let total = 0, exact = 0, correct = 0;
+    let total = 0, exact = 0, correct = 0, jokerHits = 0;
     const deltas = {};
     pSnap.forEach(d => {
       const p = d.data();
-      const pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
-      batch.update(d.ref, { pointsAwarded: pts });
-      total++; if (pts === 13) exact++; if (pts === 10) correct++;
+      const hasJoker = jokerMap[p.userId]?.has(matchId);
+      let pts;
+      if (hasJoker) {
+        pts = (p.predictedA === rA && p.predictedB === rB) ? JOKER_PTS : 0;
+        if (pts === JOKER_PTS) jokerHits++;
+      } else {
+        pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
+      }
+      batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker || false });
+      total++; if (pts === 13 || pts === JOKER_PTS) exact++; if (pts === 10) correct++;
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
@@ -1685,7 +1833,7 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     persistRankSnapshot(ranksBefore);
 
     // Only show toast for manual saves (auto-fetch batches its own toast)
-    if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct`, 'success');
+    if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct${jokerHits > 0 ? `, ${jokerHits} joker hit` : ''}`, 'success');
     const m = STATE.matches.find(x => x.matchId === matchId);
     if (m) { m.resultA = rA; m.resultB = rB; m.status = 'completed'; }
   } catch (e) { showToast('Error saving result', 'error'); console.error(e); }
@@ -2400,7 +2548,7 @@ function wireEvents() {
       if      (view === 'view-leaderboard') { showView(view); await initLeaderboard(); }
       else if (view === 'view-my-preds')    { showView(view); await initMyPredictions(); }
       else if (view === 'view-admin')       { showView(view); await initAdminPanel(); }
-      else if (view === 'view-bracket')     { showView(view); await initBracketView(); }
+      else if (view === 'view-wildcards')   { showView(view); await initWildCardsView(); }
       else if (view === 'view-home')        { showView(view); await initHomeView(); }
     });
   });

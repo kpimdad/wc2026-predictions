@@ -90,11 +90,18 @@ function findLocalMatch(apiMatch) {
 }
 
 // ── Scoring (mirror of app.js) ────────────────────────────────────────────────
+const JOKER_PTS = 20; // exact score with joker = 20pts, wrong = 0pts
+
 function calculatePoints(pA, pB, rA, rB) {
   if (pA === rA && pB === rB) return 13;
   const predWin = pA > pB ? 1 : pA < pB ? -1 : 0;
   const realWin = rA > rB ? 1 : rA < rB ? -1 : 0;
   return predWin === realWin ? 10 : 0;
+}
+
+function calculatePointsWithJoker(pA, pB, rA, rB, hasJoker) {
+  if (!hasJoker) return calculatePoints(pA, pB, rA, rB);
+  return (pA === rA && pB === rB) ? JOKER_PTS : 0;
 }
 
 // ── Fetch from football-data.org ──────────────────────────────────────────────
@@ -162,6 +169,14 @@ async function main() {
     console.log(`Pre-update ranks captured for ${allUsersData.length} users`);
   } catch (e) { console.warn('Could not capture pre-update ranks:', e.message); }
 
+  // Load all jokers once — used to apply joker scoring per user per match
+  const jokerMap = {}; // userId → Set<matchId>
+  try {
+    const jSnap = await db.collection('jokers').get();
+    jSnap.forEach(d => { jokerMap[d.id] = new Set(d.data().matchIds || []); });
+    console.log(`Jokers loaded for ${Object.keys(jokerMap).length} user(s)`);
+  } catch (e) { console.warn('Could not load jokers:', e.message); }
+
   let updated = 0;
 
   for (const apiMatch of finished) {
@@ -198,15 +213,18 @@ async function main() {
     const predBatch = db.batch();
     const deltas = {};
 
-    let skipped = 0;
+    let skipped = 0, jokerHits = 0;
     predsSnap.forEach(doc => {
-      const p    = doc.data();
-      const pts  = calculatePoints(p.predictedA, p.predictedB, rA, rB);
-      const prev = p.pointsAwarded ?? null;
+      const p        = doc.data();
+      const hasJoker = jokerMap[p.userId]?.has(ourMatch.matchId) || false;
+      const pts      = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker);
+      const prev     = p.pointsAwarded ?? null;
       if (prev === pts) { skipped++; return; }  // already correct — skip write
-      predBatch.update(doc.ref, { pointsAwarded: pts });
+      predBatch.update(doc.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (prev ?? 0));
+      if (hasJoker && pts === JOKER_PTS) jokerHits++;
     });
+    if (jokerHits > 0) console.log(`    (${jokerHits} joker hit(s) → ${JOKER_PTS} pts each)`);
     if (skipped > 0) console.log(`    (skipped ${skipped} predictions already at correct score)`);
 
     await predBatch.commit();

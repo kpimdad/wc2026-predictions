@@ -88,9 +88,9 @@
     <span class="bnav-icon">🏆</span>
     <span class="bnav-label">Champions Picks</span>
   </button>
-  <button class="bnav-btn" data-view="view-bracket">
-    <span class="bnav-icon">🗓️</span>
-    <span class="bnav-label">Bracket</span>
+  <button class="bnav-btn" data-view="view-wildcards">
+    <span class="bnav-icon">🃏</span>
+    <span class="bnav-label">Wild Cards</span>
   </button>
   <button class="bnav-btn admin-btn" data-view="view-admin" id="admin-nav-btn" style="display:none">
     <span class="bnav-icon">⚙️</span>
@@ -331,13 +331,18 @@
 </div>
 
 <!-- ════════════════════════════════════════
-     VIEW 6 — KNOCKOUT BRACKET
+     VIEW 6 — WILD CARDS
      ════════════════════════════════════════ -->
-<div id="view-bracket" class="view">
+<div id="view-wildcards" class="view">
   <div class="view-header">
-    <h2 class="view-title">🗓️ Bracket Picks</h2>
+    <h2 class="view-title">🃏 Wild Cards</h2>
   </div>
-  <div id="bracket-body"></div>
+  <div class="wc-tabs">
+    <button class="wc-tab active" data-wctab="knockout">🗓️ Knockout Picks</button>
+    <button class="wc-tab" data-wctab="jokers">⚡ Jokers</button>
+  </div>
+  <div id="wc-knockout-body"></div>
+  <div id="wc-jokers-body" style="display:none"></div>
 </div>
 
 <!--
@@ -355,7 +360,7 @@
     <button class="tab-btn" data-tab="backdate">Backdate</button>
     <button class="tab-btn" data-tab="recalc">Recalculate</button>
     <button class="tab-btn" data-tab="audit">🔍 Audit</button>
-    <button class="tab-btn" data-tab="bracket">🗓️ Bracket</button>
+    <button class="tab-btn" data-tab="bracket">🃏 Wild Cards</button>
   </div>
 
   <!-- Tab: Manage Users -->
