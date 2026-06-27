@@ -1620,6 +1620,7 @@ function setAdminTab(tab) {
   if (tab === 'recalc')   renderRecalcSection();
   if (tab === 'bracket')  renderAdminBracket();
   if (tab === 'backdate') renderBackdateSection();
+  if (tab === 'jokers')   renderJokerAudit();
 }
 
 async function renderAdminUsers() {
@@ -1840,6 +1841,125 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     const m = STATE.matches.find(x => x.matchId === matchId);
     if (m) { m.resultA = rA; m.resultB = rB; m.status = 'completed'; }
   } catch (e) { showToast('Error saving result', 'error'); console.error(e); }
+}
+
+async function renderJokerAudit() {
+  const body = document.getElementById('joker-audit-body');
+  body.innerHTML = '<p style="padding:1.25rem;color:var(--muted)">Loading…</p>';
+
+  // Load jokers, users, matches
+  const [jSnap, uSnap] = await Promise.all([
+    getDocs(collection(STATE.db, 'jokers')),
+    getDocs(collection(STATE.db, 'users'))
+  ]);
+
+  const usersById = {};
+  uSnap.forEach(d => { if (!d.data().isAdminAccount && !d.data().disabled) usersById[d.id] = d.data().nickname || d.id; });
+
+  // Build jokerMap: userId → Set<matchId>
+  const jokerMap = {};
+  jSnap.forEach(d => {
+    const ids = d.data().matchIds || [];
+    if (ids.length && usersById[d.id]) jokerMap[d.id] = ids;
+  });
+
+  const allUserIds = Object.keys(jokerMap);
+  if (!allUserIds.length) {
+    body.innerHTML = '<p style="padding:1.25rem;color:var(--muted)">No jokers used yet.</p>';
+    return;
+  }
+
+  // Collect all matchIds that have jokers on them
+  const jokerMatchIds = new Set(allUserIds.flatMap(uid => jokerMap[uid]));
+
+  // Load predictions only for those matches
+  const predRows = [];
+  for (const matchId of jokerMatchIds) {
+    const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', matchId)));
+    pSnap.forEach(d => {
+      const p = d.data();
+      if (jokerMap[p.userId]?.includes(matchId)) predRows.push(p);
+    });
+  }
+
+  // Enrich with match details
+  const matchById = {};
+  STATE.matches.forEach(m => { matchById[m.matchId] = m; });
+
+  // Group by user
+  const byUser = {};
+  predRows.forEach(p => {
+    if (!byUser[p.userId]) byUser[p.userId] = [];
+    byUser[p.userId].push(p);
+  });
+
+  // Sort each user's jokers by kickoff
+  Object.values(byUser).forEach(preds => preds.sort((a, b) => {
+    const ma = matchById[a.matchId], mb = matchById[b.matchId];
+    return new Date(ma?.kickoffUTC || 0) - new Date(mb?.kickoffUTC || 0);
+  }));
+
+  // Render
+  const sections = Object.entries(byUser)
+    .sort(([a], [b]) => (usersById[a] || '').localeCompare(usersById[b] || ''))
+    .map(([uid, preds]) => {
+      const used = preds.length;
+      const rows = preds.map(p => {
+        const m = matchById[p.matchId] || {};
+        const hasResult = m.resultA != null && m.resultB != null;
+        const pts = p.pointsAwarded ?? null;
+        const isHit = pts === JOKER_PTS;
+        const isMiss = pts === 0 && hasResult;
+        const isPending = pts == null || !hasResult;
+        const statusTag = isPending
+          ? `<span style="color:var(--muted);font-size:0.8rem">pending</span>`
+          : isHit
+            ? `<span style="color:#2ecc71;font-weight:700">✅ HIT +${JOKER_PTS}pts</span>`
+            : `<span style="color:#e74c3c;font-weight:700">❌ MISS 0pts</span>`;
+
+        const matchLabel = (m.teamA && m.teamA !== 'TBD' && m.teamB && m.teamB !== 'TBD')
+          ? `${m.teamA} vs ${m.teamB}`
+          : m.venue ? m.venue.split(',')[0] : p.matchId;
+
+        const predLabel = `${p.predictedA ?? '?'} – ${p.predictedB ?? '?'}`;
+        const resultLabel = hasResult ? `${m.resultA} – ${m.resultB}` : '–';
+
+        return `<tr>
+          <td style="padding:0.6rem 1rem;color:var(--silver);font-size:0.85rem">${matchLabel}</td>
+          <td style="padding:0.6rem 1rem;text-align:center;font-size:0.85rem">${predLabel}</td>
+          <td style="padding:0.6rem 1rem;text-align:center;font-size:0.85rem">${resultLabel}</td>
+          <td style="padding:0.6rem 1rem;text-align:center">${statusTag}</td>
+        </tr>`;
+      }).join('');
+
+      const hitsCount = preds.filter(p => p.pointsAwarded === JOKER_PTS).length;
+      const missCount = preds.filter(p => p.pointsAwarded === 0 && matchById[p.matchId]?.resultA != null).length;
+      const pendingCount = used - hitsCount - missCount;
+
+      return `
+        <div style="border-bottom:1px solid var(--border);padding:0.85rem 1rem 0.5rem">
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+            <strong style="font-size:0.95rem">${usersById[uid] || uid}</strong>
+            <span style="font-size:0.8rem;color:var(--muted)">${used}/${JOKER_MAX} jokers used</span>
+            ${hitsCount ? `<span style="font-size:0.8rem;color:#2ecc71">${hitsCount} hit</span>` : ''}
+            ${missCount ? `<span style="font-size:0.8rem;color:#e74c3c">${missCount} miss</span>` : ''}
+            ${pendingCount ? `<span style="font-size:0.8rem;color:var(--muted)">${pendingCount} pending</span>` : ''}
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">
+                <th style="padding:0.3rem 1rem;text-align:left">Match</th>
+                <th style="padding:0.3rem 1rem">Prediction</th>
+                <th style="padding:0.3rem 1rem">Result</th>
+                <th style="padding:0.3rem 1rem">Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }).join('');
+
+  body.innerHTML = sections || '<p style="padding:1.25rem;color:var(--muted)">No jokers used yet.</p>';
 }
 
 function renderRecalcSection() {
