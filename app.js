@@ -1904,58 +1904,97 @@ async function renderJokerAudit() {
     .sort(([a], [b]) => (usersById[a] || '').localeCompare(usersById[b] || ''))
     .map(([uid, preds]) => {
       const used = preds.length;
+      let totalJokerPts = 0, totalWithoutPts = 0;
+
       const rows = preds.map(p => {
         const m = matchById[p.matchId] || {};
         const hasResult = m.resultA != null && m.resultB != null;
         const pts = p.pointsAwarded ?? null;
-        const isHit = pts === JOKER_PTS;
-        const isMiss = pts === 0 && hasResult;
         const isPending = pts == null || !hasResult;
+
+        // What they earned WITH joker
+        const earnedPts = isPending ? null : pts;
+
+        // What they would have earned WITHOUT joker (normal scoring)
+        const withoutPts = hasResult
+          ? calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB)
+          : null;
+
+        // Net gain/loss vs normal scoring
+        const net = (earnedPts != null && withoutPts != null) ? earnedPts - withoutPts : null;
+
+        if (earnedPts != null) totalJokerPts += earnedPts;
+        if (withoutPts != null) totalWithoutPts += withoutPts;
+
+        const isHit = earnedPts === JOKER_PTS;
+        const isMiss = earnedPts === 0 && hasResult;
+
         const statusTag = isPending
           ? `<span style="color:var(--muted);font-size:0.8rem">pending</span>`
           : isHit
-            ? `<span style="color:#2ecc71;font-weight:700">✅ HIT +${JOKER_PTS}pts</span>`
-            : `<span style="color:#e74c3c;font-weight:700">❌ MISS 0pts</span>`;
+            ? `<span style="color:#2ecc71;font-weight:700">✅ HIT</span>`
+            : `<span style="color:#e74c3c;font-weight:700">❌ MISS</span>`;
+
+        const earnedCell = isPending ? '–'
+          : `<strong style="color:${isHit ? '#f1c40f' : '#e74c3c'}">${earnedPts}</strong>`;
+
+        const withoutCell = withoutPts == null ? '–'
+          : `<span style="color:var(--muted)">${withoutPts}</span>`;
+
+        const netColor = net == null ? '' : net > 0 ? '#2ecc71' : net < 0 ? '#e74c3c' : 'var(--muted)';
+        const netCell = net == null ? '–'
+          : `<span style="color:${netColor};font-weight:600">${net > 0 ? '+' : ''}${net}</span>`;
 
         const matchLabel = (m.teamA && m.teamA !== 'TBD' && m.teamB && m.teamB !== 'TBD')
           ? `${m.teamA} vs ${m.teamB}`
           : m.venue ? m.venue.split(',')[0] : p.matchId;
 
-        const predLabel = `${p.predictedA ?? '?'} – ${p.predictedB ?? '?'}`;
-        const resultLabel = hasResult ? `${m.resultA} – ${m.resultB}` : '–';
+        const predLabel = `${p.predictedA ?? '?'}–${p.predictedB ?? '?'}`;
+        const resultLabel = hasResult ? `${m.resultA}–${m.resultB}` : '–';
 
-        return `<tr>
-          <td style="padding:0.6rem 1rem;color:var(--silver);font-size:0.85rem">${matchLabel}</td>
-          <td style="padding:0.6rem 1rem;text-align:center;font-size:0.85rem">${predLabel}</td>
-          <td style="padding:0.6rem 1rem;text-align:center;font-size:0.85rem">${resultLabel}</td>
-          <td style="padding:0.6rem 1rem;text-align:center">${statusTag}</td>
+        return `<tr style="border-top:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:0.55rem 1rem;color:var(--silver);font-size:0.83rem">${matchLabel}</td>
+          <td style="padding:0.55rem 0.5rem;text-align:center;font-size:0.83rem">${predLabel}</td>
+          <td style="padding:0.55rem 0.5rem;text-align:center;font-size:0.83rem">${resultLabel}</td>
+          <td style="padding:0.55rem 0.5rem;text-align:center">${statusTag}</td>
+          <td style="padding:0.55rem 0.75rem;text-align:center;font-size:0.88rem">${earnedCell}</td>
+          <td style="padding:0.55rem 0.75rem;text-align:center;font-size:0.83rem">${withoutCell}</td>
+          <td style="padding:0.55rem 0.75rem;text-align:center;font-size:0.85rem">${netCell}</td>
         </tr>`;
       }).join('');
 
       const hitsCount = preds.filter(p => p.pointsAwarded === JOKER_PTS).length;
       const missCount = preds.filter(p => p.pointsAwarded === 0 && matchById[p.matchId]?.resultA != null).length;
       const pendingCount = used - hitsCount - missCount;
+      const netTotal = totalJokerPts - totalWithoutPts;
+      const netTotalColor = netTotal > 0 ? '#2ecc71' : netTotal < 0 ? '#e74c3c' : 'var(--muted)';
 
       return `
-        <div style="border-bottom:1px solid var(--border);padding:0.85rem 1rem 0.5rem">
-          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+        <div style="border-bottom:1px solid var(--border);padding:0.85rem 1rem 0.75rem">
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.65rem;flex-wrap:wrap">
             <strong style="font-size:0.95rem">${usersById[uid] || uid}</strong>
-            <span style="font-size:0.8rem;color:var(--muted)">${used}/${JOKER_MAX} jokers used</span>
-            ${hitsCount ? `<span style="font-size:0.8rem;color:#2ecc71">${hitsCount} hit</span>` : ''}
-            ${missCount ? `<span style="font-size:0.8rem;color:#e74c3c">${missCount} miss</span>` : ''}
+            <span style="font-size:0.8rem;color:var(--muted)">${used}/${JOKER_MAX} jokers</span>
+            ${hitsCount ? `<span style="font-size:0.8rem;color:#2ecc71">✅ ${hitsCount} hit</span>` : ''}
+            ${missCount ? `<span style="font-size:0.8rem;color:#e74c3c">❌ ${missCount} miss</span>` : ''}
             ${pendingCount ? `<span style="font-size:0.8rem;color:var(--muted)">${pendingCount} pending</span>` : ''}
+            ${netTotal !== 0 && !pendingCount ? `<span style="font-size:0.8rem;color:${netTotalColor};font-weight:600;margin-left:0.25rem">Net: ${netTotal > 0 ? '+' : ''}${netTotal} pts from jokers</span>` : ''}
           </div>
-          <table style="width:100%;border-collapse:collapse">
+          <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:520px">
             <thead>
-              <tr style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">
-                <th style="padding:0.3rem 1rem;text-align:left">Match</th>
-                <th style="padding:0.3rem 1rem">Prediction</th>
-                <th style="padding:0.3rem 1rem">Result</th>
-                <th style="padding:0.3rem 1rem">Status</th>
+              <tr style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;background:rgba(255,255,255,0.03)">
+                <th style="padding:0.35rem 1rem;text-align:left">Match</th>
+                <th style="padding:0.35rem 0.5rem">Pick</th>
+                <th style="padding:0.35rem 0.5rem">Result</th>
+                <th style="padding:0.35rem 0.5rem">Outcome</th>
+                <th style="padding:0.35rem 0.75rem" title="Points earned with joker">Pts ⚡</th>
+                <th style="padding:0.35rem 0.75rem" title="Points without joker">No Joker</th>
+                <th style="padding:0.35rem 0.75rem" title="Net gain or loss vs normal scoring">Net</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
+          </div>
         </div>`;
     }).join('');
 
