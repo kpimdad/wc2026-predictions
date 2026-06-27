@@ -1200,6 +1200,9 @@ const BRACKET_ROUNDS = [
 
 const JOKER_MAX = 5;
 const JOKER_PTS = 20;
+// Jokers only count for matches that kick off on or after this date.
+// Any match before this is scored with normal rules regardless of joker selection.
+const JOKER_START_UTC = new Date('2026-06-28T00:00:00Z');
 
 function isBracketLocked() {
   return Date.now() >= new Date(BRACKET_LOCK_UTC).getTime();
@@ -1800,9 +1803,11 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     const batch = writeBatch(STATE.db);
     let total = 0, exact = 0, correct = 0, jokerHits = 0;
     const deltas = {};
+    const matchKickoff = new Date((STATE.matches.find(x => x.matchId === matchId) || {}).kickoffUTC || 0);
+    const jokerEligible = matchKickoff >= JOKER_START_UTC;
     pSnap.forEach(d => {
       const p = d.data();
-      const hasJoker = jokerMap[p.userId]?.has(matchId);
+      const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(matchId) || false);
       let pts;
       if (hasJoker) {
         pts = (p.predictedA === rA && p.predictedB === rB) ? JOKER_PTS : 0;
@@ -1810,7 +1815,7 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
       } else {
         pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
       }
-      batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker || false });
+      batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
       total++; if (pts === 13 || pts === JOKER_PTS) exact++; if (pts === 10) correct++;
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
@@ -2208,9 +2213,10 @@ async function rescoreAllMatches() {
       const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', m.matchId)));
       if (pSnap.empty) continue;
       const batch = writeBatch(STATE.db);
+      const jokerEligible = new Date(m.kickoffUTC) >= JOKER_START_UTC;
       pSnap.forEach(d => {
         const p = d.data();
-        const hasJoker = jokerMap[p.userId]?.has(m.matchId) || false;
+        const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(m.matchId) || false);
         const pts = hasJoker
           ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? JOKER_PTS : 0)
           : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);

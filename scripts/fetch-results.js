@@ -91,6 +91,8 @@ function findLocalMatch(apiMatch) {
 
 // ── Scoring (mirror of app.js) ────────────────────────────────────────────────
 const JOKER_PTS = 20; // exact score with joker = 20pts, wrong = 0pts
+// Jokers only apply to matches that kick off on or after this date.
+const JOKER_START_UTC = new Date('2026-06-28T00:00:00Z');
 
 function calculatePoints(pA, pB, rA, rB) {
   if (pA === rA && pB === rB) return 13;
@@ -213,10 +215,11 @@ async function main() {
     const predBatch = db.batch();
     const deltas = {};
 
+    const jokerEligible = new Date(ourMatch.kickoffUTC) >= JOKER_START_UTC;
     let skipped = 0, jokerHits = 0;
     predsSnap.forEach(doc => {
       const p        = doc.data();
-      const hasJoker = jokerMap[p.userId]?.has(ourMatch.matchId) || false;
+      const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(ourMatch.matchId) || false);
       const pts      = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker);
       const prev     = p.pointsAwarded ?? null;
       if (prev === pts) { skipped++; return; }  // already correct — skip write
