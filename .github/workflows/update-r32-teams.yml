@@ -1,0 +1,24 @@
+name: Update R32 Team Names
+
+on:
+  workflow_dispatch: # Run once manually — Actions tab → Update R32 Team Names → Run workflow
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: scripts
+
+      - name: Write R32 teams to Firestore
+        run: node update-r32-teams.js
+        working-directory: scripts
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
