@@ -2174,6 +2174,54 @@ async function saveAllBackdatePredictions() {
   showToast(`✅ Saved ${saved} prediction${saved !== 1 ? 's' : ''}${errors ? ` · ${errors} error(s)` : ''}`, 'success');
 }
 
+async function syncR32Teams() {
+  const btn = document.getElementById('sync-r32-btn');
+  const res = document.getElementById('sync-r32-result');
+  btn.disabled = true; btn.textContent = '⏳ Syncing…';
+  res.textContent = '';
+
+  const R32 = [
+    { matchId: 'm073', kickoffUTC: '2026-06-28T19:00:00Z', teamA: 'South Africa',       teamB: 'Canada' },
+    { matchId: 'm074', kickoffUTC: '2026-06-29T17:00:00Z', teamA: 'Brazil',              teamB: 'Japan' },
+    { matchId: 'm075', kickoffUTC: '2026-06-29T20:30:00Z', teamA: 'Germany',             teamB: 'Paraguay' },
+    { matchId: 'm076', kickoffUTC: '2026-06-30T01:00:00Z', teamA: 'Netherlands',         teamB: 'Morocco' },
+    { matchId: 'm077', kickoffUTC: '2026-06-30T17:00:00Z', teamA: 'Ivory Coast',         teamB: 'Norway' },
+    { matchId: 'm078', kickoffUTC: '2026-06-30T21:00:00Z', teamA: 'France',              teamB: 'Sweden' },
+    { matchId: 'm079', kickoffUTC: '2026-07-01T01:00:00Z', teamA: 'Mexico',              teamB: 'Ecuador' },
+    { matchId: 'm080', kickoffUTC: '2026-07-01T16:00:00Z', teamA: 'England',             teamB: 'DR Congo' },
+    { matchId: 'm081', kickoffUTC: '2026-07-01T20:00:00Z', teamA: 'Belgium',             teamB: 'Senegal' },
+    { matchId: 'm082', kickoffUTC: '2026-07-02T00:00:00Z', teamA: 'USA',                 teamB: 'Bosnia & Herzegovina' },
+    { matchId: 'm083', kickoffUTC: '2026-07-02T19:00:00Z', teamA: 'Spain',               teamB: 'Austria' },
+    { matchId: 'm084', kickoffUTC: '2026-07-02T23:00:00Z', teamA: 'Portugal',            teamB: 'Croatia' },
+    { matchId: 'm085', kickoffUTC: '2026-07-03T03:00:00Z', teamA: 'Switzerland',         teamB: 'Algeria' },
+    { matchId: 'm086', kickoffUTC: '2026-07-03T18:00:00Z', teamA: 'Australia',           teamB: 'Egypt' },
+    { matchId: 'm087', kickoffUTC: '2026-07-03T22:00:00Z', teamA: 'Argentina',           teamB: 'Cape Verde' },
+    { matchId: 'm088', kickoffUTC: '2026-07-04T01:30:00Z', teamA: 'Colombia',            teamB: 'Ghana' },
+  ];
+
+  try {
+    const batch = writeBatch(STATE.db);
+    R32.forEach(m => {
+      batch.set(doc(STATE.db, 'matches', m.matchId),
+        { teamA: m.teamA, teamB: m.teamB, kickoffUTC: m.kickoffUTC },
+        { merge: true }
+      );
+    });
+    await batch.commit();
+    res.style.color = '#2ecc71';
+    res.textContent = '✅ All 16 R32 team names synced to Firestore.';
+    btn.textContent = '✅ Done';
+    // Refresh local matches state
+    await fetchMatches();
+    showToast('R32 fixtures updated!', 'success');
+  } catch(e) {
+    res.style.color = '#e74c3c';
+    res.textContent = 'Error: ' + e.message;
+    btn.textContent = '⚡ Sync R32 Team Names';
+    btn.disabled = false;
+  }
+}
+
 async function recalcAll() {
   if (!confirm('Rebuild ALL user point totals from scratch?')) return;
   showToast('Rebuilding…', 'info');

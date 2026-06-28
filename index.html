@@ -390,6 +390,18 @@
 
   <!-- Tab: Manage Matches -->
   <div class="admin-section" data-tab="matches" style="display:none">
+    <div class="admin-card" style="margin-bottom:1rem">
+      <div class="admin-card-head">Sync Confirmed Fixtures</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1rem">
+          Writes confirmed Round of 32 team names to Firestore so they appear in the app and Jokers tab.
+        </p>
+        <button id="sync-r32-btn" class="btn btn-secondary" style="width:auto;border-color:var(--gold);color:var(--gold)" onclick="syncR32Teams()">
+          ⚡ Sync R32 Team Names
+        </button>
+        <div id="sync-r32-result" style="margin-top:0.75rem;font-size:0.875rem"></div>
+      </div>
+    </div>
     <div id="admin-match-list">
       <div class="spinner"></div>
     </div>
@@ -634,7 +646,7 @@
 <script>
   function loadApp() {
     const s = document.createElement('script');
-    s.src = 'app.js?v=18';
+    s.src = 'app.js?v=19';
     document.body.appendChild(s);
   }
   if (window.firebaseReady) {
