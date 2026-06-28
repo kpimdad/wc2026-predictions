@@ -90,9 +90,11 @@ function findLocalMatch(apiMatch) {
 }
 
 // ── Scoring (mirror of app.js) ────────────────────────────────────────────────
-const JOKER_PTS = 20; // exact score with joker = 20pts, wrong = 0pts
+const JOKER_PTS    = 20; // exact score with joker = 20pts, wrong = 0pts
+const PENALTY_BONUS = 5; // correct penalty winner pick = +5pts
 // Jokers only apply to matches that kick off on or after this date.
-const JOKER_START_UTC = new Date('2026-06-28T00:00:00Z');
+const JOKER_START_UTC        = new Date('2026-06-28T00:00:00Z');
+const KNOCKOUT_STAGE_IDS_SET = new Set(['R32', 'R16', 'QF', 'SF', '3rd', 'F']);
 
 function calculatePoints(pA, pB, rA, rB) {
   if (pA === rA && pB === rB) return 13;
@@ -205,8 +207,22 @@ async function main() {
       continue;
     }
 
+    // Determine penalty winner for knockout draw results from API data
+    const isKnockout = KNOCKOUT_STAGE_IDS_SET.has(ourMatch.stage);
+    let penaltyWinner = null;
+    if (isKnockout && rA === rB && apiMatch.score?.winner && apiMatch.score.winner !== 'DRAW') {
+      // Map API winner (HOME_TEAM/AWAY_TEAM) to our teamA/teamB
+      // Check which local team the API home side refers to
+      const homeIsTeamA = teamsMatch(apiMatch.homeTeam?.name || '', ourMatch.teamA);
+      const apiWinnerIsHome = apiMatch.score.winner === 'HOME_TEAM';
+      penaltyWinner = (apiWinnerIsHome === homeIsTeamA) ? 'teamA' : 'teamB';
+      console.log(`    🥅 Penalty winner: ${penaltyWinner} (${penaltyWinner === 'teamA' ? ourMatch.teamA : ourMatch.teamB})`);
+    }
+
     // Write result to Firestore
-    await matchRef.set({ resultA: rA, resultB: rB, status: 'completed' }, { merge: true });
+    const matchWriteData = { resultA: rA, resultB: rB, status: 'completed' };
+    if (penaltyWinner) matchWriteData.penaltyWinner = penaltyWinner;
+    await matchRef.set(matchWriteData, { merge: true });
 
     // Score all predictions for this match
     const predsSnap = await db.collection('predictions')
@@ -216,18 +232,24 @@ async function main() {
     const deltas = {};
 
     const jokerEligible = new Date(ourMatch.kickoffUTC) >= JOKER_START_UTC;
-    let skipped = 0, jokerHits = 0;
+    let skipped = 0, jokerHits = 0, penaltyCorrect = 0;
     predsSnap.forEach(doc => {
       const p        = doc.data();
       const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(ourMatch.matchId) || false);
-      const pts      = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker);
-      const prev     = p.pointsAwarded ?? null;
+      let pts        = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker);
+      // Penalty bonus: +5 if user predicted a draw and pick is correct
+      const penBonus = (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
+        ? PENALTY_BONUS : 0;
+      pts += penBonus;
+      if (penBonus > 0) penaltyCorrect++;
+      const prev = p.pointsAwarded ?? null;
       if (prev === pts) { skipped++; return; }  // already correct — skip write
       predBatch.update(doc.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (prev ?? 0));
-      if (hasJoker && pts === JOKER_PTS) jokerHits++;
+      if (hasJoker && pts - penBonus === JOKER_PTS) jokerHits++;
     });
     if (jokerHits > 0) console.log(`    (${jokerHits} joker hit(s) → ${JOKER_PTS} pts each)`);
+    if (penaltyCorrect > 0) console.log(`    (${penaltyCorrect} penalty correct → +${PENALTY_BONUS} pts each)`);
     if (skipped > 0) console.log(`    (skipped ${skipped} predictions already at correct score)`);
 
     await predBatch.commit();

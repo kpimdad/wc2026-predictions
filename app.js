@@ -35,6 +35,7 @@ const STATE = {
   users: [],
   countdownTimers: [],
   currentPredictMatch: null,
+  currentPenaltyPick: null,
 };
 
 // ── Rank movement helpers ──────────────────────────────
@@ -230,9 +231,10 @@ async function fetchMatches() {
   snap.forEach(d => { fs[d.id] = d.data(); });
   STATE.matches = MATCHES.map(m => ({
     ...m,
-    resultA: fs[m.matchId]?.resultA ?? null,
-    resultB: fs[m.matchId]?.resultB ?? null,
-    status:  fs[m.matchId]?.status  ?? m.status,
+    resultA:       fs[m.matchId]?.resultA       ?? null,
+    resultB:       fs[m.matchId]?.resultB       ?? null,
+    status:        fs[m.matchId]?.status        ?? m.status,
+    penaltyWinner: fs[m.matchId]?.penaltyWinner ?? null,
   }));
 }
 
@@ -685,6 +687,10 @@ async function openPredictView(matchId) {
     el.dataset.val = t === 'a' ? initA : initB;
   });
 
+  // Init penalty pick state from existing prediction (knockout matches only)
+  STATE.currentPenaltyPick = KNOCKOUT_STAGE_IDS.has(m.stage) ? (pred?.penaltyPick || null) : null;
+  updatePenaltyPicker();
+
   const lockedMsg = document.getElementById('predict-locked-msg');
   const saveBtn   = document.getElementById('predict-save-btn');
   lockedMsg.style.display = locked ? 'block' : 'none';
@@ -700,6 +706,48 @@ function adjustScore(team, delta) {
   const next = Math.max(0, Math.min(20, parseInt(el.dataset.val, 10) + delta));
   el.dataset.val = next; el.textContent = next;
   el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+  updatePenaltyPicker();
+}
+
+// ── Penalty picker (predict view) ──────────────────────
+function updatePenaltyPickerVisual() {
+  ['teamA', 'teamB'].forEach(s => {
+    const btn = document.getElementById(s === 'teamA' ? 'penalty-btn-a' : 'penalty-btn-b');
+    if (!btn) return;
+    const sel = STATE.currentPenaltyPick === s;
+    btn.style.borderColor  = sel ? 'var(--accent)' : 'var(--border)';
+    btn.style.background   = sel ? 'rgba(255,196,0,0.15)' : 'rgba(255,255,255,0.04)';
+    btn.style.fontWeight   = sel ? '700' : '400';
+    btn.style.color        = sel ? 'var(--accent)' : 'var(--fg)';
+  });
+}
+
+function selectPenaltyWinner(side) {
+  STATE.currentPenaltyPick = (STATE.currentPenaltyPick === side) ? null : side;
+  updatePenaltyPickerVisual();
+}
+
+function updatePenaltyPicker() {
+  const m      = STATE.currentPredictMatch;
+  const picker = document.getElementById('penalty-picker');
+  if (!picker || !m) return;
+
+  const isKnockout = KNOCKOUT_STAGE_IDS.has(m.stage);
+  const sA  = parseInt(document.getElementById('score-a')?.dataset.val, 10);
+  const sB  = parseInt(document.getElementById('score-b')?.dataset.val, 10);
+  const isDraw = !isNaN(sA) && !isNaN(sB) && sA === sB;
+
+  if (isKnockout && isDraw) {
+    document.getElementById('penalty-flag-a').textContent = getFlag(m.teamA, m.flagA);
+    document.getElementById('penalty-name-a').textContent = m.teamA;
+    document.getElementById('penalty-flag-b').textContent = getFlag(m.teamB, m.flagB);
+    document.getElementById('penalty-name-b').textContent = m.teamB;
+    picker.style.display = 'block';
+    updatePenaltyPickerVisual();
+  } else {
+    picker.style.display = 'none';
+    STATE.currentPenaltyPick = null;
+  }
 }
 
 async function savePrediction() {
@@ -718,11 +766,16 @@ async function savePrediction() {
   const lastMin  = isLastMinuteWindow(m);
   const existing = STATE.predictions[m.matchId];
 
+  // Penalty pick: only save for knockout draw predictions
+  const isKnockout  = KNOCKOUT_STAGE_IDS.has(m.stage);
+  const penaltyPick = (isKnockout && scoreA === scoreB) ? STATE.currentPenaltyPick : null;
+
   let saved = false;
   try {
     const pred = {
       userId: STATE.session.userId, matchId: m.matchId,
       predictedA: scoreA, predictedB: scoreB,
+      penaltyPick,
       updatedAt: serverTimestamp(), lastMinute: lastMin,
     };
     if (!existing) pred.submittedAt = serverTimestamp();
@@ -756,9 +809,10 @@ async function savePrediction() {
     }
 
     STATE.predictions[m.matchId] = { ...pred, pointsAwarded: existing?.pointsAwarded ?? null };
+    const penText = penaltyPick ? ` · 🥅 ${penaltyPick === 'teamA' ? m.teamA : m.teamB}` : '';
     showToast(lastMin
-      ? `🔥 Last-minute pick! ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`
-      : `Saved: ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`, 'success');
+      ? `🔥 Last-minute pick! ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}${penText}`
+      : `Saved: ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}${penText}`, 'success');
     showView('view-home');
     selectDate(activeDateKey);
   } catch (e) { if (!saved) showToast('Error saving — try again', 'error'); console.error(e); }
@@ -1097,12 +1151,14 @@ function renderMyPredictions(tab) {
   if (tab) myPredTab = tab;
   let totalPts = 0, exact = 0, winner = 0;
 
+  const EXACT_PT_VALS  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
+  const WINNER_PT_VALS = new Set([10, 10 + PENALTY_BONUS]);
   STATE.matches.forEach(m => {
     const p = STATE.predictions[m.matchId];
     if (!p || p.pointsAwarded == null) return;
     totalPts += p.pointsAwarded;
-    if (p.pointsAwarded === 13 || p.pointsAwarded === JOKER_PTS) exact++;
-    else if (p.pointsAwarded === 10) winner++;
+    if (EXACT_PT_VALS.has(p.pointsAwarded))  exact++;
+    else if (WINNER_PT_VALS.has(p.pointsAwarded)) winner++;
   });
 
   const scored = Object.values(STATE.predictions).filter(p => p.pointsAwarded != null);
@@ -1159,9 +1215,20 @@ function renderMyPredictions(tab) {
       <div class="matchday-label">${day}</div>
       ${items.map(({ m, p }) => {
         const pts = p.pointsAwarded;
-        const ptsCls = pts === 13 ? 'exact' : pts === 10 ? 'winner' : pts === 0 ? 'wrong' : 'none';
-        const ptsLabel = pts === 13 ? '+13' : pts === 10 ? '+10' : pts === 0 ? '0' : '–';
+        const ptsCls   = EXACT_PT_VALS.has(pts) ? 'exact' : WINNER_PT_VALS.has(pts) ? 'winner' : pts === 0 ? 'wrong' : 'none';
+        const ptsLabel = pts != null ? (pts > 0 ? '+' + pts : '0') : '–';
         const result = m.resultA != null ? `${m.resultA} – ${m.resultB}` : null;
+
+        // Penalty pick row (knockout matches)
+        const isKnockout = KNOCKOUT_STAGE_IDS.has(m.stage);
+        let penaltyRow = '';
+        if (isKnockout && p.penaltyPick) {
+          const pickName = p.penaltyPick === 'teamA' ? m.teamA : m.teamB;
+          const pickFlag = p.penaltyPick === 'teamA' ? getFlag(m.teamA, m.flagA) : getFlag(m.teamB, m.flagB);
+          let penIcon = '⏳';
+          if (m.penaltyWinner) penIcon = m.penaltyWinner === p.penaltyPick ? '✅' : '❌';
+          penaltyRow = `<div style="text-align:center;font-size:0.75rem;color:var(--muted);margin-top:0.3rem">🥅 ${pickFlag} ${pickName} ${penIcon}</div>`;
+        }
 
         return `<div class="pred-fm-card">
           <div class="pred-fm-row">
@@ -1182,6 +1249,7 @@ function renderMyPredictions(tab) {
             </div>
           </div>
           <div class="pred-fm-pts ${ptsCls}">${ptsLabel} pts</div>
+          ${penaltyRow}
         </div>`;
       }).join('')}
     </div>`).join('');
@@ -1203,6 +1271,8 @@ const JOKER_PTS = 20;
 // Jokers only count for matches that kick off on or after this date.
 // Any match before this is scored with normal rules regardless of joker selection.
 const JOKER_START_UTC = new Date('2026-06-28T00:00:00Z');
+const PENALTY_BONUS = 5;
+const KNOCKOUT_STAGE_IDS = new Set(['R32', 'R16', 'QF', 'SF', '3rd', 'F']);
 
 function isBracketLocked() {
   return Date.now() >= new Date(BRACKET_LOCK_UTC).getTime();
@@ -1761,7 +1831,26 @@ function renderAdminMatches(tab) {
       <div class="admin-card-head">${day}</div>
       <div class="admin-card-body" style="padding:0">
         ${matches.map(m => {
-          const hasResult = m.resultA != null && m.resultB != null;
+          const hasResult  = m.resultA != null && m.resultB != null;
+          const isKnockout = KNOCKOUT_STAGE_IDS.has(m.stage);
+          const isDraw     = hasResult && m.resultA === m.resultB;
+          // Pre-populate admin penalty selections from existing Firestore data
+          if (m.penaltyWinner) adminPenaltySelections[m.matchId] = m.penaltyWinner;
+          const penSel = adminPenaltySelections[m.matchId] || null;
+
+          const penaltyRow = isKnockout ? `
+            <div class="pen-admin-row" id="pen-row-${m.matchId}" style="display:${isDraw ? 'flex' : 'none'};align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+              <span style="font-size:0.72rem;color:var(--muted);white-space:nowrap">🥅 Pen winner:</span>
+              <button data-pen-match="${m.matchId}" data-side="teamA" onclick="setPenaltyAdmin('${m.matchId}','teamA')"
+                style="padding:0.3rem 0.65rem;border-radius:6px;border:2px solid ${penSel==='teamA'?'var(--accent)':'var(--border)'};background:${penSel==='teamA'?'rgba(255,196,0,0.15)':'transparent'};color:${penSel==='teamA'?'var(--accent)':'var(--fg)'};font-size:0.75rem;cursor:pointer;font-weight:${penSel==='teamA'?'700':'400'}">
+                ${getFlag(m.teamA, m.flagA)} ${m.teamA}
+              </button>
+              <button data-pen-match="${m.matchId}" data-side="teamB" onclick="setPenaltyAdmin('${m.matchId}','teamB')"
+                style="padding:0.3rem 0.65rem;border-radius:6px;border:2px solid ${penSel==='teamB'?'var(--accent)':'var(--border)'};background:${penSel==='teamB'?'rgba(255,196,0,0.15)':'transparent'};color:${penSel==='teamB'?'var(--accent)':'var(--fg)'};font-size:0.75rem;cursor:pointer;font-weight:${penSel==='teamB'?'700':'400'}">
+                ${m.teamB} ${getFlag(m.teamB, m.flagB)}
+              </button>
+            </div>` : '';
+
           return `
           <div class="match-admin-row" style="padding:.875rem 1rem">
             <div class="match-admin-teams">
@@ -1770,17 +1859,41 @@ function renderAdminMatches(tab) {
             </div>
             <div class="match-admin-meta">${formatKickoff(m.kickoffUTC)} · ${m.venue}</div>
             <div class="result-entry">
-              <input class="result-input" id="res-a-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultA ?? ''}">
+              <input class="result-input" id="res-a-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultA ?? ''}"
+                ${isKnockout ? `oninput="onAdminScoreInput('${m.matchId}')"` : ''}>
               <span class="result-dash">–</span>
-              <input class="result-input" id="res-b-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultB ?? ''}">
+              <input class="result-input" id="res-b-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultB ?? ''}"
+                ${isKnockout ? `oninput="onAdminScoreInput('${m.matchId}')"` : ''}>
               <button class="btn btn-secondary btn-sm" style="width:auto;font-size:0.72rem" onclick="saveMatchResult('${m.matchId}')">
                 ${hasResult ? '✏️ Override' : 'Save'}
               </button>
             </div>
+            ${penaltyRow}
           </div>`;
         }).join('')}
       </div>
     </div>`).join(''));
+}
+
+// ── Admin penalty winner selection ────────────────────
+const adminPenaltySelections = {};  // matchId → 'teamA' | 'teamB'
+
+function setPenaltyAdmin(matchId, side) {
+  adminPenaltySelections[matchId] = (adminPenaltySelections[matchId] === side) ? null : side;
+  document.querySelectorAll(`[data-pen-match="${matchId}"]`).forEach(btn => {
+    const sel = adminPenaltySelections[matchId] === btn.dataset.side;
+    btn.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+    btn.style.background  = sel ? 'rgba(255,196,0,0.15)' : 'transparent';
+    btn.style.color       = sel ? 'var(--accent)' : 'var(--fg)';
+    btn.style.fontWeight  = sel ? '700' : '400';
+  });
+}
+
+function onAdminScoreInput(matchId) {
+  const rA = parseInt(document.getElementById(`res-a-${matchId}`)?.value, 10);
+  const rB = parseInt(document.getElementById(`res-b-${matchId}`)?.value, 10);
+  const row = document.getElementById(`pen-row-${matchId}`);
+  if (row) row.style.display = (!isNaN(rA) && !isNaN(rB) && rA === rB) ? 'flex' : 'none';
 }
 
 // ── Save a single match result (manual or auto) ────────
@@ -1790,7 +1903,19 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
   const rB = autoRB !== undefined ? autoRB : parseInt(document.getElementById(`res-b-${matchId}`)?.value, 10);
   if (isNaN(rA) || isNaN(rB)) { showToast('Enter valid scores', 'error'); return; }
   try {
-    await setDoc(doc(STATE.db, 'matches', matchId), { resultA: rA, resultB: rB, status: 'completed' }, { merge: true });
+    // Determine penalty winner for knockout draw results
+    const matchState   = STATE.matches.find(x => x.matchId === matchId) || {};
+    const isKnockout   = KNOCKOUT_STAGE_IDS.has(matchState.stage);
+    const penaltyWinner = isKnockout && rA === rB
+      ? (adminPenaltySelections[matchId] || matchState.penaltyWinner || null)
+      : null;
+
+    const matchData = { resultA: rA, resultB: rB, status: 'completed' };
+    if (penaltyWinner) matchData.penaltyWinner = penaltyWinner;
+    await setDoc(doc(STATE.db, 'matches', matchId), matchData, { merge: true });
+    // Update local state so penalty is visible immediately
+    if (matchState) matchState.penaltyWinner = penaltyWinner;
+
     const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', matchId)));
 
     // Load jokers — users who applied a joker to this match get 20pts for exact / 0pts for wrong
@@ -1801,9 +1926,9 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     } catch(e) { console.warn('joker load:', e); }
 
     const batch = writeBatch(STATE.db);
-    let total = 0, exact = 0, correct = 0, jokerHits = 0;
+    let total = 0, exact = 0, correct = 0, jokerHits = 0, penaltyCorrect = 0;
     const deltas = {};
-    const matchKickoff = new Date((STATE.matches.find(x => x.matchId === matchId) || {}).kickoffUTC || 0);
+    const matchKickoff = new Date(matchState.kickoffUTC || 0);
     const jokerEligible = matchKickoff >= JOKER_START_UTC;
     pSnap.forEach(d => {
       const p = d.data();
@@ -1815,8 +1940,16 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
       } else {
         pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
       }
+      // Penalty bonus: +5 if match went to pens, user predicted a draw, pick is correct
+      const penBonus = (penaltyWinner && rA === rB && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
+        ? PENALTY_BONUS : 0;
+      pts += penBonus;
+      if (penBonus > 0) penaltyCorrect++;
       batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
-      total++; if (pts === 13 || pts === JOKER_PTS) exact++; if (pts === 10) correct++;
+      total++;
+      const scorePts = pts - penBonus;
+      if (scorePts === 13 || scorePts === JOKER_PTS) exact++;
+      else if (scorePts === 10) correct++;
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
@@ -1842,7 +1975,7 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     persistRankSnapshot(ranksBefore);
 
     // Only show toast for manual saves (auto-fetch batches its own toast)
-    if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct${jokerHits > 0 ? `, ${jokerHits} joker hit` : ''}`, 'success');
+    if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct${jokerHits > 0 ? `, ${jokerHits} joker hit` : ''}${penaltyCorrect > 0 ? `, ${penaltyCorrect} penalty correct` : ''}`, 'success');
     const m = STATE.matches.find(x => x.matchId === matchId);
     if (m) { m.resultA = rA; m.resultB = rB; m.status = 'completed'; }
   } catch (e) { showToast('Error saving result', 'error'); console.error(e); }
@@ -2262,12 +2395,17 @@ async function rescoreAllMatches() {
       if (pSnap.empty) continue;
       const batch = writeBatch(STATE.db);
       const jokerEligible = new Date(m.kickoffUTC) >= JOKER_START_UTC;
+      const isKnockout    = KNOCKOUT_STAGE_IDS.has(m.stage);
+      const penaltyWinner = (isKnockout && m.resultA === m.resultB) ? (m.penaltyWinner || null) : null;
       pSnap.forEach(d => {
         const p = d.data();
         const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(m.matchId) || false);
-        const pts = hasJoker
+        let pts = hasJoker
           ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? JOKER_PTS : 0)
           : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
+        // Penalty bonus
+        if (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
+          pts += PENALTY_BONUS;
         batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
         predCount++;
       });

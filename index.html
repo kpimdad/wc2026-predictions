@@ -269,6 +269,21 @@
       </div>
     </div>
 
+    <!-- Penalty pick — knockout matches only, shown when score is a draw -->
+    <div id="penalty-picker" style="display:none;margin-top:1.25rem">
+      <div style="text-align:center;font-size:0.72rem;color:var(--muted);margin-bottom:0.6rem;font-weight:700;letter-spacing:0.08em">🥅 PENALTY WINNER</div>
+      <div style="display:flex;gap:0.75rem">
+        <button id="penalty-btn-a" onclick="selectPenaltyWinner('teamA')"
+          style="flex:1;padding:0.7rem 0.5rem;border-radius:10px;border:2px solid var(--border);background:rgba(255,255,255,0.04);color:var(--fg);font-size:0.88rem;cursor:pointer;transition:all 0.15s;line-height:1.4">
+          <span id="penalty-flag-a">🏳️</span><br><span id="penalty-name-a">Team A</span>
+        </button>
+        <button id="penalty-btn-b" onclick="selectPenaltyWinner('teamB')"
+          style="flex:1;padding:0.7rem 0.5rem;border-radius:10px;border:2px solid var(--border);background:rgba(255,255,255,0.04);color:var(--fg);font-size:0.88rem;cursor:pointer;transition:all 0.15s;line-height:1.4">
+          <span id="penalty-flag-b">🏳️</span><br><span id="penalty-name-b">Team B</span>
+        </button>
+      </div>
+    </div>
+
     <div class="predict-actions">
       <button id="predict-save-btn" class="btn btn-primary">Save Prediction 💾</button>
       <button id="predict-back-btn" class="btn btn-secondary">← Back</button>
@@ -646,7 +661,7 @@
 <script>
   function loadApp() {
     const s = document.createElement('script');
-    s.src = 'app.js?v=20';
+    s.src = 'app.js?v=21';
     document.body.appendChild(s);
   }
   if (window.firebaseReady) {
