@@ -1258,7 +1258,7 @@ function renderMyPredictions(tab) {
 // VIEW 6 — WILD CARDS (Knockout Picks + Jokers)
 // ═══════════════════════════════════════════════════════
 
-const BRACKET_LOCK_UTC = '2026-06-28T19:00:00Z'; // first R32 kickoff
+const BRACKET_LOCK_UTC = '2026-07-01T00:00:00Z'; // extended to 1 Jul
 const BRACKET_ROUNDS = [
   { key: 'qf',      label: 'Quarter-Finals',  count: 4, pts: 5  },
   { key: 'sf',      label: 'Semi-Finals',      count: 2, pts: 8  },
