@@ -1248,7 +1248,7 @@ function renderMyPredictions(tab) {
               <span class="pred-fm-name">${m.teamB}</span>
             </div>
           </div>
-          <div class="pred-fm-pts ${ptsCls}">${ptsLabel} pts</div>
+          <div class="pred-fm-pts ${ptsCls}">${ptsLabel} pts${p.jokerUsed ? ' ⚡' : ''}</div>
           ${penaltyRow}
         </div>`;
       }).join('')}
