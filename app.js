@@ -904,14 +904,22 @@ async function openCompareModal(userId, nickname) {
     return;
   }
 
-  const ptsCls   = p => p === 13 ? 'exact' : p === 10 ? 'winner' : p === 0 ? 'wrong' : 'none';
-  const ptsLabel = p => p === 13 ? '+13 ⚽' : p === 10 ? '+10 ✓' : p === 0 ? '0 pts' : '–';
+  const EXACT_VALS  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
+  const WINNER_VALS = new Set([10, 10 + PENALTY_BONUS]);
+  const ptsCls   = p => EXACT_VALS.has(p) ? 'exact' : WINNER_VALS.has(p) ? 'winner' : p === 0 ? 'wrong' : 'none';
+  const ptsLabel = (p, jokerUsed) => {
+    if (p == null) return '–';
+    const jokerTag = jokerUsed ? ' ⚡' : '';
+    if (p === 0 && jokerUsed) return `0${jokerTag}`;
+    if (p > 0) return `+${p}${jokerTag}`;
+    return '0';
+  };
 
   body.innerHTML = completed.map(m => {
     const mine   = STATE.predictions[m.matchId];
     const theirs = theirPreds[m.matchId];
-    const myPts  = mine?.pointsAwarded ?? null;
-    const thPts  = theirs ? calculatePoints(theirs.predictedA, theirs.predictedB, m.resultA, m.resultB) : null;
+    const myPts  = mine?.pointsAwarded   ?? null;
+    const thPts  = theirs?.pointsAwarded ?? null;
 
     return `<div class="compare-row">
       <div class="compare-match-label">${getFlag(m.teamA, m.flagA)} ${m.teamA} <strong>${m.resultA}–${m.resultB}</strong> ${m.teamB} ${getFlag(m.teamB, m.flagB)}</div>
@@ -919,12 +927,12 @@ async function openCompareModal(userId, nickname) {
         <div class="compare-pick ${ptsCls(myPts)}">
           <span class="compare-who">You</span>
           <span class="compare-score">${mine ? `${mine.predictedA}–${mine.predictedB}` : '–'}</span>
-          <span class="compare-pts">${ptsLabel(myPts)}</span>
+          <span class="compare-pts">${ptsLabel(myPts, mine?.jokerUsed)}</span>
         </div>
         <div class="compare-pick ${ptsCls(thPts)}">
           <span class="compare-who">${nickname}</span>
           <span class="compare-score">${theirs ? `${theirs.predictedA}–${theirs.predictedB}` : '–'}</span>
-          <span class="compare-pts">${ptsLabel(thPts)}</span>
+          <span class="compare-pts">${ptsLabel(thPts, theirs?.jokerUsed)}</span>
         </div>
       </div>
     </div>`;
