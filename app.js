@@ -476,7 +476,7 @@ function getETDate(kickoffUTC) {
 }
 
 async function initHomeView() {
-  await Promise.all([fetchMatches(), fetchMyPredictions()]);
+  await Promise.all([fetchMatches(), fetchMyPredictions(), fetchJokers()]);
   buildDateNav();
   startCountdownTimers();
 }
@@ -579,15 +579,23 @@ function renderMatchCard(m) {
         <div class="fm-status-label">${locked ? '🔒' : kickoffStr.split(',')[0]}</div>
       </div>`;
 
+  // Joker indicator (loaded at startup via fetchJokers)
+  const jokerOn = (STATE.jokers || []).includes(m.matchId);
+  const jokerBadge = jokerOn ? `<span style="color:var(--accent);font-size:0.8rem;font-weight:700">⚡</span>` : '';
+
   // Prediction strip at bottom
+  const _EXACT_V  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
+  const _WINNER_V = new Set([10, 10 + PENALTY_BONUS]);
   let pickStrip = '';
   if (completed) {
     const pts = pred?.pointsAwarded;
+    const jokerTag = pred?.jokerUsed ? ' ⚡' : '';
     const ptsBadge =
-      pts === 13 ? `<span class="fm-pts exact">+13 pts ⚽</span>` :
-      pts === 10 ? `<span class="fm-pts winner">+10 pts ✓</span>` :
-      pts === 0  ? `<span class="fm-pts wrong">0 pts</span>`      :
-      !pred      ? `<span class="fm-pts none">No pick</span>`     : '';
+      pts == null && !pred ? `<span class="fm-pts none">No pick</span>` :
+      pts == null           ? '' :
+      _EXACT_V.has(pts)     ? `<span class="fm-pts exact">+${pts} pts${jokerTag}</span>` :
+      _WINNER_V.has(pts)    ? `<span class="fm-pts winner">+${pts} pts${jokerTag}</span>` :
+                              `<span class="fm-pts wrong">${pts} pts${jokerTag}</span>`;
     pickStrip = `<div class="fm-pick-strip">
       ${pred ? `<span class="fm-pick-label">Your pick</span><span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span>` : '<span class="fm-pick-label text-muted">No pick made</span>'}
       ${ptsBadge}
@@ -595,7 +603,7 @@ function renderMatchCard(m) {
   } else if (locked) {
     pickStrip = `<div class="fm-pick-strip locked">
       🔒 Locked
-      ${pred ? `<span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span><span style="color:var(--grass);font-size:0.8rem">✓</span>` : '<span style="color:var(--muted);font-size:0.8rem">No pick</span>'}
+      ${pred ? `<span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span>${jokerBadge}<span style="color:var(--grass);font-size:0.8rem">✓</span>` : '<span style="color:var(--muted);font-size:0.8rem">No pick</span>'}
     </div>`;
   } else {
     const urgentClass = countdown && !countdown.includes('d') && !countdown.includes('h') ? 'urgent' : '';
@@ -604,6 +612,7 @@ function renderMatchCard(m) {
       ? `<div class="fm-pick-strip has-pick">
            <span class="fm-pick-label">Your pick</span>
            <span class="fm-pick-score">${pred.predictedA}–${pred.predictedB}</span>
+           ${jokerBadge}
            <button class="fm-btn-edit" data-match="${m.matchId}">Edit</button>
            ${countdownHTML}
          </div>`
@@ -848,15 +857,18 @@ function renderDeadlineBanner() {
 
 async function computeUserAccuracy() {
   const snap = await getDocs(collection(STATE.db, 'predictions'));
-  const allPreds = {}, finished = {}, scored = {}, exactMap = {}, winnerMap = {};
+  const allPreds = {}, finished = {}, scored = {}, exactMap = {}, winnerMap = {}, penaltyMap = {};
+  const _EXACT  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
+  const _WINNER = new Set([10, 10 + PENALTY_BONUS]);
   snap.forEach(d => {
     const p = d.data();
     allPreds[p.userId] = (allPreds[p.userId] || 0) + 1;
     if (p.pointsAwarded != null) {
       finished[p.userId] = (finished[p.userId] || 0) + 1;
-      if (p.pointsAwarded === 13 || p.pointsAwarded === JOKER_PTS) { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
-      else if (p.pointsAwarded === 10) { winnerMap[p.userId] = (winnerMap[p.userId] || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
+      if (_EXACT.has(p.pointsAwarded))  { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
+      else if (_WINNER.has(p.pointsAwarded)) { winnerMap[p.userId] = (winnerMap[p.userId] || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
     }
+    if (p.penaltyBonusAwarded > 0) penaltyMap[p.userId] = (penaltyMap[p.userId] || 0) + (p.penaltyBonusAwarded || 0);
   });
   STATE.users.forEach(u => {
     const total = finished[u.id] || 0;
@@ -864,6 +876,7 @@ async function computeUserAccuracy() {
     u.finishedPreds    = total;
     u.computedExact    = exactMap[u.id]  || 0;
     u.computedWinner   = winnerMap[u.id] || 0;
+    u.penaltyPts       = penaltyMap[u.id] || 0;
     u.exactAccuracy    = total >= 1 ? Math.round(((exactMap[u.id]  || 0) / total) * 100) : null;
     u.resultAccuracy   = total >= 1 ? Math.round(((winnerMap[u.id] || 0) / total) * 100) : null;
     u.accuracy         = total >= 1 ? Math.round(((scored[u.id]    || 0) / total) * 100) : null;
@@ -1050,7 +1063,7 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
       <td class="lb-td-num lb-td-played">${played}</td>
       <td class="lb-td-num lb-td-exact">${exact}</td>
       <td class="lb-td-num lb-td-result">${winner}</td>
-      <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
+      <td class="lb-td-pts"><span class="lb-pts">${pts}</span>${(u.penaltyPts > 0 && !filter) ? `<span style="display:block;font-size:0.62rem;color:var(--muted);margin-top:2px">🥅+${u.penaltyPts}</span>` : ''}</td>
     </tr>`;
 
     // Bracket bonus
@@ -1953,7 +1966,7 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
         ? PENALTY_BONUS : 0;
       pts += penBonus;
       if (penBonus > 0) penaltyCorrect++;
-      batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
+      batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: penBonus });
       total++;
       const scorePts = pts - penBonus;
       if (scorePts === 13 || scorePts === JOKER_PTS) exact++;
@@ -2412,9 +2425,9 @@ async function rescoreAllMatches() {
           ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? JOKER_PTS : 0)
           : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
         // Penalty bonus
-        if (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
-          pts += PENALTY_BONUS;
-        batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
+        const rPenBonus = (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner) ? PENALTY_BONUS : 0;
+        pts += rPenBonus;
+        batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: rPenBonus });
         predCount++;
       });
       await batch.commit();

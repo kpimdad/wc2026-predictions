@@ -244,7 +244,7 @@ async function main() {
       if (penBonus > 0) penaltyCorrect++;
       const prev = p.pointsAwarded ?? null;
       if (prev === pts) { skipped++; return; }  // already correct — skip write
-      predBatch.update(doc.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
+      predBatch.update(doc.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: penBonus });
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (prev ?? 0));
       if (hasJoker && pts - penBonus === JOKER_PTS) jokerHits++;
     });
