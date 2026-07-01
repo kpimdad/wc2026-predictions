@@ -934,17 +934,33 @@ async function openCompareModal(userId, nickname) {
     const myPts  = mine?.pointsAwarded   ?? null;
     const thPts  = theirs?.pointsAwarded ?? null;
 
+    // Penalty pick row: only for knockout draws that went to pens
+    const isPenMatch = KNOCKOUT_STAGE_IDS.has(m.stage) && m.resultA === m.resultB && m.penaltyWinner != null;
+    const penTeamName = side => side === 'teamA' ? `${getFlag(m.teamA, m.flagA)} ${m.teamA}` : side === 'teamB' ? `${getFlag(m.teamB, m.flagB)} ${m.teamB}` : null;
+    const penPickHTML = (pred) => {
+      if (!isPenMatch) return '';
+      const pickedDraw = pred && pred.predictedA === pred.predictedB;
+      const pick = pickedDraw ? pred.penaltyPick : null;
+      const teamLabel = penTeamName(pick);
+      const isCorrect = pick === m.penaltyWinner;
+      const color = !pick ? 'var(--muted)' : isCorrect ? '#2ecc71' : '#e74c3c';
+      const label = teamLabel ? `${isCorrect ? '✓' : '✗'} ${teamLabel}` : '🥅 –';
+      return `<span style="font-size:0.7rem;color:${color};margin-top:2px">${label}</span>`;
+    };
+
     return `<div class="compare-row">
       <div class="compare-match-label">${getFlag(m.teamA, m.flagA)} ${m.teamA} <strong>${m.resultA}–${m.resultB}</strong> ${m.teamB} ${getFlag(m.teamB, m.flagB)}</div>
       <div class="compare-picks">
         <div class="compare-pick ${ptsCls(myPts)}">
           <span class="compare-who">You</span>
           <span class="compare-score">${mine ? `${mine.predictedA}–${mine.predictedB}` : '–'}</span>
+          ${penPickHTML(mine)}
           <span class="compare-pts">${ptsLabel(myPts, mine?.jokerUsed)}</span>
         </div>
         <div class="compare-pick ${ptsCls(thPts)}">
           <span class="compare-who">${nickname}</span>
           <span class="compare-score">${theirs ? `${theirs.predictedA}–${theirs.predictedB}` : '–'}</span>
+          ${penPickHTML(theirs)}
           <span class="compare-pts">${ptsLabel(thPts, theirs?.jokerUsed)}</span>
         </div>
       </div>
